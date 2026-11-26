@@ -1,0 +1,62 @@
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
+import { Sparkles } from "lucide-react";
+import { AppShell } from "@/components/motion/AppShell";
+import { FORMATOS, saveProject, type Project, type ProjectConfig } from "@/lib/projects";
+
+export const Route = createFileRoute("/novo")({
+  head: () => ({ meta: [
+    { title: "Novo projeto Motion IA — MotionMRO" },
+    { name: "description", content: "Descreva sua ideia e deixe os agentes de IA criarem o vídeo." },
+    { property: "og:title", content: "Novo projeto Motion IA — MotionMRO" },
+    { property: "og:description", content: "Descreva sua ideia e deixe os agentes de IA criarem o vídeo." },
+  ] }),
+  component: Novo,
+});
+
+const field = "w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary";
+
+function Novo() {
+  const nav = useNavigate();
+  const [c, setC] = useState<ProjectConfig>({ nome: "", ideia: "", duracao: 20, largura: 1920, altura: 1080, estilo: "", paleta: "", publico: "", objetivo: "", idioma: "Português", velocidade: "Média", intensidade: "Alta" });
+  const up = (k: keyof ProjectConfig, v: string | number) => setC((x) => ({ ...x, [k]: v }));
+  async function criar() {
+    const p: Project = { id: crypto.randomUUID(), criadoEm: Date.now(), atualizadoEm: Date.now(), config: { ...c, nome: c.nome || c.ideia.slice(0, 40) }, cenas: [], log: [], status: "rascunho",
+      agentes: { diretor: "aguardando", roteirista: "aguardando", desenvolvedor: "aguardando", validador: "aguardando" } };
+    await saveProject(p);
+    nav({ to: "/projetos/$id", params: { id: p.id }, search: { iniciar: true } });
+  }
+  return (
+    <AppShell title="Motion IA — novo projeto">
+      <div className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-[1fr_340px]">
+        <section className="rounded-xl border border-border bg-stage p-6 grid-lines">
+          <label className="font-mono text-xs uppercase tracking-widest text-primary">O que você quer produzir?</label>
+          <textarea value={c.ideia} onChange={(e) => up("ideia", e.target.value)} rows={9}
+            placeholder="Ex.: Crie um vídeo publicitário de 30 segundos apresentando uma ferramenta de automação para Instagram. Moderno, cinematográfico, fundo escuro, partículas e textos impactantes."
+            className="mt-3 w-full resize-none rounded-lg border border-input bg-card/80 p-4 text-base outline-none focus:border-primary" />
+          <p className="mt-2 text-xs text-muted-foreground">Só a ideia já basta: campos vazios são decididos pelo Diretor Criativo.</p>
+          <button disabled={c.ideia.trim().length < 10} onClick={criar}
+            className="mt-6 inline-flex items-center gap-2 rounded-md bg-gradient-primary px-6 py-3 font-semibold text-primary-foreground shadow-glow disabled:opacity-40">
+            <Sparkles className="h-4 w-4" />Iniciar produção
+          </button>
+        </section>
+        <aside className="space-y-4 rounded-xl border border-border bg-card p-5">
+          <div><label className="text-xs text-muted-foreground">Nome do projeto</label><input className={field} value={c.nome} onChange={(e) => up("nome", e.target.value)} /></div>
+          <div><label className="text-xs text-muted-foreground">Formato</label>
+            <select className={field} value={`${c.largura}x${c.altura}`} onChange={(e) => { const [w, h] = e.target.value.split("x").map(Number); setC((x) => ({ ...x, largura: w!, altura: h! })); }}>
+              {FORMATOS.map((f) => <option key={f.label} value={`${f.w}x${f.h}`}>{f.w}×{f.h} — {f.label}</option>)}
+            </select></div>
+          <div><label className="text-xs text-muted-foreground">Duração: {c.duracao}s</label><input type="range" min={6} max={90} value={c.duracao} onChange={(e) => up("duracao", Number(e.target.value))} className="w-full accent-primary" /></div>
+          {([["estilo", "Estilo visual"], ["paleta", "Paleta de cores"], ["publico", "Público-alvo"], ["objetivo", "Objetivo"]] as const).map(([k, l]) => (
+            <div key={k}><label className="text-xs text-muted-foreground">{l}</label><input className={field} placeholder="A IA decide" value={c[k]} onChange={(e) => up(k, e.target.value)} /></div>
+          ))}
+          <div className="grid grid-cols-3 gap-2">
+            {([["idioma", ["Português", "English", "Español"]], ["velocidade", ["Lenta", "Média", "Rápida"]], ["intensidade", ["Sutil", "Média", "Alta"]]] as const).map(([k, opts]) => (
+              <div key={k}><label className="text-xs capitalize text-muted-foreground">{k}</label><select className={field} value={c[k]} onChange={(e) => up(k, e.target.value)}>{opts.map((o) => <option key={o}>{o}</option>)}</select></div>
+            ))}
+          </div>
+        </aside>
+      </div>
+    </AppShell>
+  );
+}

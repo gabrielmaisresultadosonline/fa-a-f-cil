@@ -28,3 +28,5 @@ use the editor.
   own key and store it in Secrets.
 - **Secrets.** Lovable manages them. Do not put secret values in the repo.
 <!-- LOVABLE:END -->
+
+- MotionMRO: projects persist in browser IndexedDB (src/lib/projects.ts) because the spec requires local-only storage; AI agents run via one server function (src/lib/agents.functions.ts) and the client orchestrates the pipeline (src/lib/pipeline.ts) so progress shows live.
