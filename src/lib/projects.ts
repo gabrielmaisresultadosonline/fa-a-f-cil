@@ -43,6 +43,7 @@ export interface Project {
   criadoEm: number;
   atualizadoEm: number;
   config: ProjectConfig;
+  pedidoOriginal?: ProjectConfig;
   direcao?: string;
   cenas: Scene[];
   agentes: Partial<Record<AgentKey, AgentStatus>>;

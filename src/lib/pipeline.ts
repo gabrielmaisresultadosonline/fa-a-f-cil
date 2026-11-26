@@ -2,6 +2,7 @@ import { callAgent } from "./ai";
 import { saveProject, type Project, type Scene } from "./projects";
 import { gerarVoz } from "./tts";
 import type { CustoMeta } from "./costs";
+import { buildMotionBrief } from "./projectBrief";
 
 const meta = (p: Project, etapa: string): CustoMeta => ({ projetoId: p.id, projetoNome: p.config.nome, modulo: "motion", etapa });
 
@@ -12,7 +13,7 @@ export async function runPipeline(p: Project, onUpdate: (p: Project) => void) {
     await saveProject(p);
     onUpdate({ ...p });
   };
-  const brief = `Projeto: ${c.nome}\nIdeia: ${c.ideia}\nDuração total: ${c.duracao}s\nFormato: ${c.largura}x${c.altura}\nEstilo: ${c.estilo || "a IA decide"}\nPaleta: ${c.paleta || "a IA decide"}\nPúblico: ${c.publico || "a IA decide"}\nObjetivo: ${c.objetivo || "a IA decide"}\nIdioma dos textos: ${c.idioma}\nVelocidade: ${c.velocidade}\nIntensidade dos efeitos: ${c.intensidade}\nEfeitos sonoros: ${c.sons ? "SIM — escolha os melhores momentos" : "não"}\nMovimentos de câmera: sim, cinematográficos\nNarração por voz: ${c.voz ? "SIM — escreva o texto falado de cada cena" : "não"}`;
+  const brief = buildMotionBrief(c);
   const base = { largura: c.largura, altura: c.altura };
   p.status = "produzindo";
   try {
@@ -30,7 +31,8 @@ export async function runPipeline(p: Project, onUpdate: (p: Project) => void) {
     }
     p.agentes.desenvolvedor = "executando";
     for (let i = 0; i < p.cenas.length; i++) {
-      const cena = p.cenas[i]!;
+      const cena = p.cenas[i];
+      if (!cena) continue;
       if (cena.html) continue;
       await push("Dev. de Motion", `Programando cena ${i + 1}: ${cena.titulo}`);
       await generateScene(p, i);
@@ -39,7 +41,8 @@ export async function runPipeline(p: Project, onUpdate: (p: Project) => void) {
     if (c.voz) {
       p.agentes.locutor = "executando";
       for (let i = 0; i < p.cenas.length; i++) {
-        const cena = p.cenas[i]!;
+        const cena = p.cenas[i];
+      if (!cena) continue;
         if (cena.audio) continue;
         const texto = (cena.narracao || [cena.textoPrincipal, cena.textoSecundario].filter(Boolean).join(". ")).trim();
         if (!texto) continue;
@@ -62,7 +65,8 @@ export async function runPipeline(p: Project, onUpdate: (p: Project) => void) {
 
 export async function generateScene(p: Project, i: number, ajuste?: string) {
   const c = p.config;
-  const cena = p.cenas[i]!;
+  const cena = p.cenas[i];
+  if (!cena) throw new Error("Cena não encontrada.");
   const prev = p.cenas[i - 1]; const next = p.cenas[i + 1];
   const ctx = `DIREÇÃO CRIATIVA:\n${p.direcao}\n\nCENA ${i + 1} de ${p.cenas.length} (duração ${cena.duracao}s):\n${JSON.stringify({ ...cena, html: undefined }, null, 2)}\n\nCena anterior: ${prev?.titulo ?? "nenhuma (abertura)"}\nPróxima cena: ${next?.titulo ?? "nenhuma (encerramento)"}\nIdioma: ${c.idioma}. Velocidade: ${c.velocidade}. Intensidade: ${c.intensidade}.${ajuste ? `\n\nAJUSTE PEDIDO PELO USUÁRIO: ${ajuste}${cena.html ? `\n\nCÓDIGO ATUAL:\n${cena.html.slice(0, 30000)}` : ""}` : ""}`;
   const r = await callAgent({ agente: "desenvolvedor", contexto: ctx, largura: c.largura, altura: c.altura }, meta(p, `Dev. de Motion — cena ${i + 1}`));

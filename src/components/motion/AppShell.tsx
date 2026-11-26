@@ -54,16 +54,16 @@ export function AppShell({ children, title, actions }: { children: ReactNode; ti
         </div>
       </aside>
       <div className="relative flex min-w-0 flex-1 flex-col">
-        <header className="glass sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-border px-6 py-4">
-          <div className="flex min-w-0 items-center gap-3">
-            <nav className="flex gap-1 md:hidden">
+        <header className="glass sticky top-0 z-10 flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-4 sm:px-6">
+          <div className="flex w-full min-w-0 flex-col gap-3 md:w-auto md:flex-1 md:flex-row md:items-center">
+            <nav className="flex w-full flex-wrap gap-1 md:hidden">
               {NAV.map((n) => (<Link key={n.to} to={n.to} className="rounded-md p-2 text-muted-foreground data-[status=active]:text-primary" aria-label={n.label}><n.icon className="h-4 w-4" /></Link>))}
             </nav>
-            <h1 className="truncate text-lg font-semibold tracking-tight">{title}</h1>
+            <h1 className="min-w-0 break-words text-lg font-semibold">{title}</h1>
           </div>
-          <div className="flex flex-wrap items-center justify-end gap-2">{actions}</div>
+          <div className="flex max-w-full flex-wrap items-center gap-2 md:justify-end">{actions}</div>
         </header>
-        <main className="animate-fade-up flex-1 p-6">{children}</main>
+        <main className="animate-fade-up min-w-0 flex-1 p-4 sm:p-6">{children}</main>
       </div>
     </div>
   );

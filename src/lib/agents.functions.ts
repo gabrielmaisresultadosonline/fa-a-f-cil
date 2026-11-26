@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { CREATION_RULES } from "./projectBrief";
 
 const CAMERA = `MOVIMENTO DE CÂMERA (obrigatório, com qualidade cinematográfica): envolva todas as camadas num contêiner "câmera" com perspective e aplique movimentos contínuos ao longo da cena conforme o campo movimentoCamera (push-in/dolly lento, pan, tilt 3D, órbita, rack de profundidade com parallax entre camadas de frente/meio/fundo, whip-pan nas transições, shake sutil em impactos). Movimentos suaves com easing (power2/expo), nunca bruscos sem motivo.`;
 
@@ -23,7 +24,9 @@ export const runAgent = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data }) => {
-    const system = PROMPTS[data.agente]!.replaceAll("WIDTH", String(data.largura)).replaceAll("HEIGHT", String(data.altura));
+    const prompt = PROMPTS[data.agente];
+    if (!prompt) throw new Error("Agente desconhecido.");
+    const system = `${prompt}\n\n${CREATION_RULES}`.replaceAll("WIDTH", String(data.largura)).replaceAll("HEIGHT", String(data.altura));
     let text = "", entrada = 0, saida = 0;
     if (data.token) {
       const r = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -42,18 +45,7 @@ export const runAgent = createServerFn({ method: "POST" })
       text = j.choices?.[0]?.message?.content ?? "";
       entrada = j.usage?.prompt_tokens ?? 0; saida = j.usage?.completion_tokens ?? 0;
     } else {
-      const { generateResponse, GatewayError } = await import("@lovable.dev/ai-gateway");
-      try {
-        const res = await generateResponse({ model: "openai/gpt-6.1-terra", instructions: system, input: [{ role: "user", content: data.contexto }] });
-        for (const item of res.output ?? []) if (item.type === "message") for (const c of item.content ?? []) if (c.type === "output_text") text += c.text;
-      } catch (e) {
-        if (e instanceof GatewayError) {
-          if (e.httpStatus === 429) throw new Error("Muitas solicitações. Aguarde um momento e tente de novo.");
-          if (e.httpStatus === 402) throw new Error("Créditos de IA esgotados. Cadastre seu token da OpenAI em Administração.");
-          throw new Error(`Falha na IA: ${e.message}`);
-        }
-        throw e;
-      }
+      throw new Error("Cadastre seu token da OpenAI em Administração.");
     }
     text = text.replace(/^```[a-z]*\s*/i, "").replace(/```\s*$/i, "").trim();
     return { text, entrada, saida };
