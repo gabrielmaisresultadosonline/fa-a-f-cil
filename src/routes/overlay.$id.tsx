@@ -4,12 +4,14 @@ import { Circle, Loader2, RefreshCw, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AppShell } from "@/components/motion/AppShell";
+import { RenderStatus } from "@/components/motion/RenderStatus";
+import { Button } from "@/components/ui/button";
 import { SfxToggle } from "@/components/motion/SfxToggle";
 import { getOverlay, saveOverlay, type OverlayProject } from "@/lib/overlays";
 import { generateOverlay, runOverlayPipeline } from "@/lib/overlayPipeline";
 import { audioCtx, recordDest, scheduleSons } from "@/lib/sfx";
 import { download, recordRegion } from "@/lib/recorder";
-import { renderNoServidor, type Engine } from "@/lib/serverRender";
+import type { Engine } from "@/lib/serverRender";
 import { enfileirar } from "@/lib/queue";
 
 export const Route = createFileRoute("/overlay/$id")({
@@ -19,6 +21,8 @@ export const Route = createFileRoute("/overlay/$id")({
     { name: "description", content: "Assista ao vídeo com overlays, câmera e sons gerados pela IA e exporte." },
     { property: "og:title", content: "Editor de overlay — MotionMRO" },
     { property: "og:description", content: "Assista ao vídeo com overlays, câmera e sons gerados pela IA e exporte." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary_large_image" },
   ] }),
   component: OverlayEditor,
 });
@@ -110,10 +114,11 @@ function OverlayEditor() {
     if (!p) return;
     if (modo === "navegador") return gravar();
     setSrv(true);
-    const tid = toast.loading(`Renderizando com ${modo === "ffmpeg" ? "FFmpeg" : "HyperFrames"}… pode levar alguns minutos`);
-    try { const blob = await renderNoServidor(p, modo); download(blob, `${p.nome.replace(/\W+/g, "_")}_overlay.mp4`); toast.success("Vídeo MP4 renderizado", { id: tid }); }
-    catch (e) { toast.error(e instanceof Error ? e.message : "Erro", { id: tid }); }
-    setSrv(false);
+    try {
+      await enfileirar({ modulo: "overlay", alvoId: p.id, nome: p.nome, engine: modo });
+      toast.success("Envio confirmado. Pode fechar o navegador; o servidor continua renderizando.");
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Erro ao enviar"); }
+    finally { setSrv(false); }
   }
   async function regen() {
     if (!p) return; setBusy(true);
@@ -128,11 +133,11 @@ function OverlayEditor() {
       <select value={modo} onChange={(e) => setModo(e.target.value as typeof modo)} className="rounded-md border border-input bg-background px-2 py-2 text-sm">
         <option value="ffmpeg">FFmpeg (servidor)</option><option value="hyperframes">HyperFrames (servidor)</option><option value="navegador">Gravar no navegador</option>
       </select>
-      <button onClick={renderizar} disabled={busy || rec || srv || !p.overlays.some((x) => x.html)} className="inline-flex items-center gap-2 rounded-md bg-gradient-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-40">
-        {rec || srv ? <Loader2 className="h-4 w-4 animate-spin" /> : <Circle className="h-3 w-3 fill-current" />}{rec ? "Gravando…" : srv ? "Renderizando…" : "Renderizar agora"}</button>
-      <button disabled={modo === "navegador" || busy || !p.overlays.some((x) => x.html)} onClick={async () => { if (modo === "navegador") return; await enfileirar({ modulo: "overlay", alvoId: p.id, nome: p.nome, engine: modo }); toast.success("Adicionado à fila de renderização"); }}
-        className="rounded-md border border-border px-3 py-2 text-sm hover:border-primary disabled:opacity-40">Adicionar à fila</button>
+      <Button onClick={renderizar} disabled={busy || rec || srv || !p.overlays.some((x) => x.html)}>
+        {rec || srv ? <Loader2 className="animate-spin" /> : <Circle className="fill-current" />}{rec ? "Gravando…" : srv ? "Enviando…" : "Renderizar agora"}</Button>
+      <Button variant="outline" disabled={modo === "navegador" || busy || srv || !p.overlays.some((x) => x.html)} onClick={renderizar}>Adicionar à fila</Button>
     </>}>
+      <RenderStatus alvoId={id} />
       <div className="grid gap-6 xl:grid-cols-[1fr_320px]">
         <section className="flex min-w-0 flex-col gap-3">
           <div ref={box} className="grid h-[60vh] min-h-[320px] place-items-center overflow-hidden rounded-lg bg-stage grid-lines">
@@ -149,7 +154,7 @@ function OverlayEditor() {
             <SfxToggle on={p.sons} onChange={async (v) => { p.sons = v; await saveOverlay(p); setP({ ...p }); }} />
             <span className="ml-auto font-mono text-xs text-muted-foreground">{p.overlays.filter((x) => x.html).length}/{p.overlays.length} overlays · {p.duracao.toFixed(1)}s</span>
           </div>
-          {!rec && <p className="text-xs text-muted-foreground">A prévia acima já mostra tudo. Em <b>Renderizar</b>: FFmpeg ou HyperFrames usam seu servidor (localhost ou VPS, configurado em Administração) e geram MP4 quadro a quadro; “Gravar no navegador” grava esta aba (escolha <b>Esta aba</b>).</p>}
+          {!rec && modo === "navegador" && <p className="text-xs text-muted-foreground">A gravação no navegador precisa desta aba aberta e visível.</p>}
           <div className="flex gap-2 overflow-x-auto rounded-lg border border-border bg-card p-3">
             {p.overlays.length === 0 && <span className="text-sm text-muted-foreground">{busy ? "A IA está ouvindo o vídeo…" : "Sem overlays ainda."}</span>}
             {p.overlays.map((x, i) => (

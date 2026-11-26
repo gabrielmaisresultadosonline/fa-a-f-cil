@@ -31,7 +31,7 @@ function Dashboard() {
     const up = () => listJobs().then(setJobs); up(); return onQueue(up);
   }, []);
   const total = custos.reduce((s, c) => s + c.usd, 0);
-  const ativos = jobs.filter((j) => j.status === "na fila" || j.status === "renderizando");
+  const ativos = jobs.filter((j) => j.status === "enviando" || j.status === "na fila" || j.status === "renderizando");
   const recentes = [
     ...motion.map((p) => ({ id: p.id, nome: p.config.nome, t: p.atualizadoEm, status: p.status, info: `${p.cenas.length} cenas · ${p.cenas.reduce((s, c) => s + c.duracao, 0)}s`, tipo: "motion" as const })),
     ...ovs.map((p) => ({ id: p.id, nome: p.nome, t: p.atualizadoEm, status: p.status, info: `${p.overlays.length} overlays · ${p.duracao.toFixed(0)}s`, tipo: "overlay" as const })),

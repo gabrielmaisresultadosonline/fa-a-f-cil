@@ -14,6 +14,8 @@ export const Route = createFileRoute("/custos")({
     { name: "description", content: "Histórico do custo de cada geração: IA, transcrição e voz, por projeto e por segundo de vídeo." },
     { property: "og:title", content: "Custos por vídeo — MotionMRO" },
     { property: "og:description", content: "Histórico do custo de cada geração: IA, transcrição e voz, por projeto e por segundo de vídeo." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary_large_image" },
   ] }),
   component: Custos,
 });

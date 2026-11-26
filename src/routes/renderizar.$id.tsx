@@ -14,6 +14,8 @@ export const Route = createFileRoute("/renderizar/$id")({
     { name: "description", content: "Transforme seu motion graphics em um arquivo de vídeo com efeitos sonoros." },
     { property: "og:title", content: "Renderizar vídeo — MotionMRO" },
     { property: "og:description", content: "Transforme seu motion graphics em um arquivo de vídeo com efeitos sonoros." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary_large_image" },
   ] }),
   component: Render,
 });

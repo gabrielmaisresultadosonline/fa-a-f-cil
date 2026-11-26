@@ -10,6 +10,8 @@ export const Route = createFileRoute("/overlay/")({
     { name: "description", content: "Envie um vídeo e a IA entende a fala e cria overlays animados sincronizados." },
     { property: "og:title", content: "Video Overlay IA — MotionMRO" },
     { property: "og:description", content: "Envie um vídeo e a IA entende a fala e cria overlays animados sincronizados." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary_large_image" },
   ] }),
   component: OverlayHome,
 });

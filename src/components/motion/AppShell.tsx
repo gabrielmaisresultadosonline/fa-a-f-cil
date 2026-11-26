@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
 import { LayoutDashboard, Sparkles, Layers, FolderOpen, Settings2, Clapperboard, ListVideo, Wallet } from "lucide-react";
-import { listJobs, onQueue, processarFila } from "@/lib/queue";
+import { acompanharFila, listJobs, onQueue } from "@/lib/queue";
 
 const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -16,8 +16,8 @@ const NAV = [
 function useFila() {
   const [n, setN] = useState(0);
   useEffect(() => {
-    const up = () => listJobs().then((j) => setN(j.filter((x) => x.status === "na fila" || x.status === "renderizando").length));
-    up(); void processarFila(); return onQueue(up);
+    const up = () => listJobs().then((j) => setN(j.filter((x) => x.status === "enviando" || x.status === "na fila" || x.status === "renderizando").length));
+    void up(); const stop = acompanharFila(); const off = onQueue(up); return () => { stop(); off(); };
   }, []);
   return n;
 }

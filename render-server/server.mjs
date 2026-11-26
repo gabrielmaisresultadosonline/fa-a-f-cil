@@ -1,35 +1,41 @@
 // MotionMRO — servidor de renderização (localhost ou VPS)
 // Requisitos: Node 22+, FFmpeg no PATH. HyperFrames é usado via `npx hyperframes` quando escolhido.
 import http from "node:http";
-import { mkdtemp, writeFile, mkdir, readFile, rm, readdir } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { writeFile, mkdir, readFile, rm, stat } from "node:fs/promises";
+import { createReadStream } from "node:fs";
+import { join, resolve } from "node:path";
 import { spawn } from "node:child_process";
+import { Readable } from "node:stream";
 import puppeteer from "puppeteer";
+import { RenderQueue, validJobId, validateManifest } from "./jobs.mjs";
 
 const PORT = Number(process.env.PORT || 4400);
-const FPS_PADRAO = 30;
+const HOST = process.env.HOST || "127.0.0.1";
+const DATA_DIR = resolve(process.env.DATA_DIR || "./data");
+const MAX_UPLOAD = Number(process.env.MAX_UPLOAD_MB || 512) * 1024 * 1024;
 
-function run(cmd, args, cwd) {
+function run(cmd, args, cwd, onOutput) {
   return new Promise((res, rej) => {
     const p = spawn(cmd, args, { cwd, shell: process.platform === "win32" });
     let err = "";
     p.stderr.on("data", (d) => { err += d; if (err.length > 20000) err = err.slice(-20000); });
-    p.stdout.on("data", (d) => process.stdout.write(d));
+    p.stdout.on("data", (d) => { if (onOutput) onOutput(String(d)); else process.stdout.write(d); });
+    p.on("error", rej);
     p.on("close", (c) => (c === 0 ? res() : rej(new Error(`${cmd} saiu com código ${c}\n${err.slice(-2000)}`))));
   });
 }
 async function temAudio(file) {
   return new Promise((res) => {
     const p = spawn("ffprobe", ["-v", "error", "-select_streams", "a", "-show_entries", "stream=index", "-of", "csv=p=0", file], { shell: process.platform === "win32" });
-    let o = ""; p.stdout.on("data", (d) => (o += d)); p.on("close", () => res(o.trim().length > 0));
+    let o = ""; p.stdout.on("data", (d) => (o += d)); p.on("error", () => res(false)); p.on("close", () => res(o.trim().length > 0));
   });
 }
 
 // Renderiza cada overlay HTML como sequência de PNG transparentes, quadro a quadro (determinístico)
-async function renderOverlayFrames(browser, ov, i, m, dir) {
+async function renderOverlayFrames(browser, ov, i, m, dir, onFrame) {
   const out = join(dir, `ov${i}`); await mkdir(out, { recursive: true });
   const page = await browser.newPage();
+  try {
   await page.setViewport({ width: m.largura, height: m.altura });
   await page.setContent(ov.html, { waitUntil: "networkidle0", timeout: 60000 });
   await page.evaluate(() => document.fonts?.ready);
@@ -43,9 +49,10 @@ async function renderOverlayFrames(browser, ov, i, m, dir) {
       for (const a of document.getAnimations()) { a.pause(); a.currentTime = t * 1000; }
     }, t, t0);
     await page.screenshot({ path: join(out, `${String(f).padStart(5, "0")}.png`), omitBackground: true });
+    onFrame();
   }
-  await page.close();
   return out;
+  } finally { await page.close(); }
 }
 
 function zoomExpr(ovs) {
@@ -69,7 +76,7 @@ function panExpr(ovs) {
   return parts.length ? parts.join("+") : "0";
 }
 
-async function renderFFmpeg(m, dir, video, sfx, frames) {
+async function renderFFmpeg(m, dir, video, sfx, frames, progress) {
   const W = m.largura, H = m.altura, out = join(dir, "final.mp4");
   const args = ["-y", "-i", video];
   frames.forEach((f) => args.push("-framerate", String(m.fps), "-i", join(f, "%05d.png")));
@@ -86,18 +93,28 @@ async function renderFFmpeg(m, dir, video, sfx, frames) {
   if (sfx && hasA) { fc += `;[0:a][${sIdx}:a]amix=inputs=2:duration=first:normalize=0[a]`; aMap = ["-map", "[a]"]; }
   else if (sfx) aMap = ["-map", `${sIdx}:a`];
   else if (hasA) aMap = ["-map", "0:a"];
-  args.push("-filter_complex", fc, "-map", vOut, ...aMap, "-c:v", "libx264", "-preset", "medium", "-crf", "18", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k", "-t", String(m.duracao), "-movflags", "+faststart", out);
-  await run("ffmpeg", args, dir);
+  args.push("-filter_complex_threads", "1", "-filter_complex", fc, "-map", vOut, ...aMap, "-c:v", "libx264", "-threads", "2", "-preset", "medium", "-crf", "18", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k", "-t", String(m.duracao), "-movflags", "+faststart", "-progress", "pipe:1", "-nostats", out);
+  let pending = "";
+  await run("ffmpeg", args, dir, (chunk) => {
+    pending += chunk;
+    const lines = pending.split("\n"); pending = lines.pop() || "";
+    for (const line of lines) {
+      const match = /^out_time_us=(\d+)/.exec(line);
+      if (match) progress(75 + 24 * Math.min(1, Number(match[1]) / 1e6 / m.duracao), "Codificando MP4 · FFmpeg");
+    }
+  });
   return out;
 }
 
 const CAM = { "punch": [1.14, 0, 0.25], "zoom-in": [1.1, 0], "zoom-out": [1, 0], "pan-esquerda": [1.12, 4], "pan-direita": [1.12, -4] };
-async function renderHyperFrames(m, dir, video, sfx, frames) {
+async function renderHyperFrames(m, dir, video, sfx, frames, progress) {
   const proj = join(dir, "hf"); await mkdir(join(proj, "assets"), { recursive: true });
   await run("ffmpeg", ["-y", "-i", video, "-c", "copy", join(proj, "assets", "video.mp4")], dir).catch(() => run("ffmpeg", ["-y", "-i", video, join(proj, "assets", "video.mp4")], dir));
   // overlays viram vídeos WebM com transparência
-  for (let i = 0; i < frames.length; i++)
+  for (let i = 0; i < frames.length; i++) {
     await run("ffmpeg", ["-y", "-framerate", String(m.fps), "-i", join(frames[i], "%05d.png"), "-c:v", "libvpx-vp9", "-pix_fmt", "yuva420p", "-b:v", "4M", join(proj, "assets", `ov${i}.webm`)], dir);
+    progress(75 + 10 * (i + 1) / frames.length, `Preparando camada ${i + 1}/${frames.length} · HyperFrames`);
+  }
   if (sfx) await writeFile(join(proj, "assets", "sfx.wav"), await readFile(sfx));
   const hasA = await temAudio(video);
   const tweens = m.overlays.map((o) => {
@@ -118,43 +135,112 @@ tl.set({}, {}, ${m.duracao});window.__timelines=window.__timelines||{};window.__
   await writeFile(join(proj, "index.html"), html);
   await writeFile(join(proj, "hyperframes.json"), JSON.stringify({ name: "motionmro", fps: m.fps }, null, 2));
   const out = join(dir, "final.mp4");
-  await run("npx", ["--yes", "hyperframes", "render", "--output", out], proj);
+  progress(85, "Codificando MP4 · HyperFrames");
+  let pending = "", last = 0;
+  await run("npx", ["--yes", "hyperframes@0.9.100", "render", "--output", out, "--fps", String(m.fps), "--workers", "1"], proj, (chunk) => {
+    process.stdout.write(chunk);
+    pending += chunk;
+    const lines = pending.split("\n"); pending = lines.pop() || "";
+    for (const line of lines) {
+      if (!line.startsWith("@hf-progress ")) continue;
+      try {
+        const event = JSON.parse(line.slice(13));
+        if (Number.isFinite(event.pct) && (Date.now() - last > 500 || event.pct === 100)) {
+          last = Date.now(); progress(85 + 14 * Math.min(100, Math.max(0, event.pct)) / 100, "Codificando MP4 · HyperFrames");
+        }
+      } catch { /* Ignore non-progress CLI output. */ }
+    }
+  });
   return out;
 }
 
 function cors(res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
+  res.setHeader("Access-Control-Allow-Methods", "POST, GET, DELETE, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "*");
   res.setHeader("Access-Control-Allow-Private-Network", "true");
 }
 
-let browser;
+const queue = new RenderQueue(DATA_DIR, async (m, dir, progress) => {
+  const video = join(dir, "input.mp4");
+  const exists = (path) => stat(path).then(() => true, () => false);
+  // Each worker has its own browser; no screenshots of the user's visible tab.
+  let browser;
+  try {
+    if (!(await exists(video))) await run("ffmpeg", ["-y", "-f", "lavfi", "-i", `color=c=black:s=${m.largura}x${m.altura}:d=${m.duracao}:r=${m.fps}`, "-c:v", "libx264", "-pix_fmt", "yuv420p", video], dir);
+    const sfx = await exists(join(dir, "sfx.wav")) ? join(dir, "sfx.wav") : null;
+    browser = await puppeteer.launch({ headless: true, args: ["--no-sandbox", "--disable-setuid-sandbox"] });
+    const frames = [];
+    const totalFrames = m.overlays.reduce((n, o) => n + Math.max(1, Math.round((o.fim - o.inicio) * m.fps)), 0);
+    let done = 0, last = 0;
+    for (let i = 0; i < m.overlays.length; i++) {
+      progress(5 + 70 * done / totalFrames, `Renderizando camada ${i + 1}/${m.overlays.length}`);
+      frames.push(await renderOverlayFrames(browser, m.overlays[i], i, m, dir, () => {
+        done++;
+        if (Date.now() - last > 500 || done === totalFrames) { last = Date.now(); progress(5 + 70 * done / totalFrames, `Quadros ${done}/${totalFrames}`); }
+      }));
+    }
+    progress(75, "Preparando MP4");
+    if (m.engine === "hyperframes") await renderHyperFrames(m, dir, video, sfx, frames, progress);
+    else await renderFFmpeg(m, dir, video, sfx, frames, progress);
+    // Intermediate frames are large; keep source inputs for retry and the final MP4.
+    for (const path of frames) await rm(path, { recursive: true, force: true });
+    await rm(join(dir, "hf"), { recursive: true, force: true });
+  } finally { await browser?.close(); }
+}, process.env.RENDER_CONCURRENCY);
+await queue.init();
+
+const json = (res, status, value) => { res.writeHead(status, { "Content-Type": "application/json", "Cache-Control": "no-store" }); res.end(JSON.stringify(value)); };
 http.createServer(async (req, res) => {
   cors(res);
   if (req.method === "OPTIONS") { res.writeHead(204); return res.end(); }
-  if (req.method === "GET") { res.writeHead(200, { "Content-Type": "application/json" }); return res.end(JSON.stringify({ ok: true, app: "motionmro-render" })); }
-  if (req.method !== "POST" || !req.url?.startsWith("/render")) { res.writeHead(404); return res.end(); }
-  const dir = await mkdtemp(join(tmpdir(), "mmro-"));
+  const path = new URL(req.url || "/", "http://localhost").pathname;
+  if (req.method === "GET" && path === "/") return json(res, 200, { ok: true, app: "motionmro-render", version: 2, backgroundQueue: true });
+  const match = /^\/jobs\/([^/]+)(?:\/(download|retry))?$/.exec(path);
+  if (!match || !validJobId(match[1])) return json(res, 404, { erro: "Atualize o servidor de renderização para a versão 2 (fila em segundo plano)." });
+  const [, id, action] = match;
   try {
-    const form = await new Request("http://x", { method: "POST", headers: req.headers, body: req, duplex: "half" }).formData();
-    const m = JSON.parse(String(form.get("manifest")));
-    m.fps = m.fps || FPS_PADRAO;
-    const video = join(dir, "input.mp4"); const vf = form.get("video");
-    if (vf && typeof vf !== "string") await writeFile(video, Buffer.from(await vf.arrayBuffer()));
-    else await run("ffmpeg", ["-y", "-f", "lavfi", "-i", `color=c=black:s=${m.largura}x${m.altura}:d=${m.duracao}:r=${m.fps || FPS_PADRAO}`, "-c:v", "libx264", "-pix_fmt", "yuv420p", video], dir); // Motion IA: sem vídeo de fundo
-    let sfx = null; const s = form.get("sfx");
-    if (s && typeof s !== "string") { sfx = join(dir, "sfx.wav"); await writeFile(sfx, Buffer.from(await s.arrayBuffer())); }
-    browser ??= await puppeteer.launch({ headless: true, args: ["--no-sandbox", "--disable-setuid-sandbox"] });
-    console.log(`▶ ${m.engine} · ${m.largura}x${m.altura} · ${m.duracao}s · ${m.overlays.length} overlays`);
-    const frames = [];
-    for (let i = 0; i < m.overlays.length; i++) { console.log(`  overlay ${i + 1}/${m.overlays.length}`); frames.push(await renderOverlayFrames(browser, m.overlays[i], i, m, dir)); }
-    const out = m.engine === "hyperframes" ? await renderHyperFrames(m, dir, video, sfx, frames) : await renderFFmpeg(m, dir, video, sfx, frames);
-    const buf = await readFile(out);
-    res.writeHead(200, { "Content-Type": "video/mp4", "Content-Length": buf.length }); res.end(buf);
-    console.log("✔ pronto");
+    if (req.method === "POST" && !action) {
+      if (queue.get(id)) { req.resume(); return json(res, 200, queue.get(id)); }
+      if (Number(req.headers["content-length"]) > MAX_UPLOAD) return json(res, 413, { erro: "Arquivo excede o limite de envio do servidor" });
+      let received = 0;
+      const limited = Readable.from((async function* () {
+        for await (const chunk of req) {
+          received += chunk.length;
+          if (received > MAX_UPLOAD) throw new Error("Arquivo excede o limite de envio do servidor");
+          yield chunk;
+        }
+      })());
+      const form = await new Request("http://localhost", { method: "POST", headers: req.headers, body: limited, duplex: "half" }).formData();
+      const m = validateManifest(JSON.parse(String(form.get("manifest"))));
+      const job = await queue.submit(id, m, async (dir) => {
+        for (const [field, name] of [["video", "input.mp4"], ["sfx", "sfx.wav"]]) {
+          const file = form.get(field);
+          if (file && typeof file !== "string") await writeFile(join(dir, name), Buffer.from(await file.arrayBuffer()));
+        }
+      });
+      return json(res, 202, job);
+    }
+    const job = queue.get(id);
+    if (!job) return json(res, 404, { erro: "Renderização não encontrada neste servidor" });
+    if (req.method === "GET" && !action) return json(res, 200, job);
+    if (req.method === "POST" && action === "retry") return json(res, 202, await queue.retry(id));
+    if (req.method === "DELETE" && !action) { await queue.remove(id); return json(res, 200, { ok: true }); }
+    if (req.method === "GET" && action === "download") {
+      if (job.status !== "concluido") return json(res, 409, { erro: "O MP4 ainda não está pronto" });
+      const file = join(queue.directory(id), "final.mp4");
+      const info = await stat(file);
+      const name = job.nome.replace(/[^a-zA-Z0-9_-]+/g, "_").slice(0, 100) || "video";
+      res.writeHead(200, { "Content-Type": "video/mp4", "Content-Length": info.size, "Content-Disposition": `attachment; filename="${name}.mp4"` });
+      const stream = createReadStream(file);
+      stream.on("error", () => res.destroy());
+      res.on("close", () => stream.destroy());
+      return stream.pipe(res);
+    }
+    return json(res, 405, { erro: "Operação indisponível" });
   } catch (e) {
     console.error(e);
-    res.writeHead(500, { "Content-Type": "text/plain; charset=utf-8" }); res.end(String(e?.message || e));
-  } finally { rm(dir, { recursive: true, force: true }).catch(() => {}); }
-}).listen(PORT, () => console.log(`MotionMRO render server em http://localhost:${PORT}`));
+    if (!res.headersSent) json(res, 400, { erro: String(e?.message || e) });
+    else res.destroy();
+  }
+}).listen(PORT, HOST, () => console.log(`MotionMRO render v2 em http://${HOST}:${PORT} · dados: ${DATA_DIR} · workers: ${queue.concurrency}`));

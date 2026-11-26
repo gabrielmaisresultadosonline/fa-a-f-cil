@@ -10,6 +10,8 @@ export const Route = createFileRoute("/novo")({
     { name: "description", content: "Descreva sua ideia e deixe os agentes de IA criarem o vídeo." },
     { property: "og:title", content: "Novo projeto Motion IA — MotionMRO" },
     { property: "og:description", content: "Descreva sua ideia e deixe os agentes de IA criarem o vídeo." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary_large_image" },
   ] }),
   component: Novo,
 });

@@ -148,3 +148,9 @@
   background: linear-gradient(90deg, transparent, color-mix(in oklab, var(--primary) 40%, transparent), transparent) 0 0 / 200% 100%;
   animation: shimmer 3s linear infinite;
 }
+
+.render-progress { appearance: none; border: 0; border-radius: var(--radius); overflow: hidden; background: var(--secondary); color: var(--primary); }
+.render-progress::-webkit-progress-bar { background: var(--secondary); }
+.render-progress::-webkit-progress-value { background: var(--primary); transition: width .3s ease; }
+.render-progress::-moz-progress-bar { background: var(--primary); }
+@media (prefers-reduced-motion: reduce) { .render-progress::-webkit-progress-value { transition: none; } }

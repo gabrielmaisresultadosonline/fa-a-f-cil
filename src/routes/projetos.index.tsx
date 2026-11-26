@@ -10,6 +10,8 @@ export const Route = createFileRoute("/projetos/")({
     { name: "description", content: "Todos os seus vídeos e motion graphics criados com IA." },
     { property: "og:title", content: "Meus projetos — MotionMRO" },
     { property: "og:description", content: "Todos os seus vídeos e motion graphics criados com IA." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary_large_image" },
   ] }),
   component: Projetos,
 });

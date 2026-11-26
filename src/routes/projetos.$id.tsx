@@ -4,6 +4,8 @@ import { Play, Pause, Download, Film, ListPlus, RefreshCw, Loader2, Check, X, Ci
 import { toast } from "sonner";
 import { z } from "zod";
 import { AppShell } from "@/components/motion/AppShell";
+import { RenderStatus } from "@/components/motion/RenderStatus";
+import { Button } from "@/components/ui/button";
 import { ScenePlayer } from "@/components/motion/ScenePlayer";
 import { SfxToggle } from "@/components/motion/SfxToggle";
 import { AGENTES, buildFullHtml, getProject, saveProject, type Project, type AgentStatus } from "@/lib/projects";
@@ -18,6 +20,8 @@ export const Route = createFileRoute("/projetos/$id")({
     { name: "description", content: "Acompanhe os agentes, assista às cenas e ajuste seu vídeo." },
     { property: "og:title", content: "Editor de projeto — MotionMRO" },
     { property: "og:description", content: "Acompanhe os agentes, assista às cenas e ajuste seu vídeo." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary_large_image" },
   ] }),
   component: Editor,
 });
@@ -40,6 +44,7 @@ function Editor() {
   const [busy, setBusy] = useState(false);
   const started = useRef(false);
   const [engine, setEngine] = useState<Engine>("ffmpeg");
+  const [enviando, setEnviando] = useState(false);
 
   const start = useCallback(async (proj: Project) => {
     setBusy(true);
@@ -73,6 +78,13 @@ function Editor() {
     const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `${p.config.nome.replace(/\W+/g, "_")}.html`; a.click();
   }
   async function rename(nome: string) { if (!p) return; p.config.nome = nome; await saveProject(p); setP({ ...p }); }
+  async function renderizar() {
+    if (!p) return;
+    setEnviando(true);
+    try { await enfileirar({ modulo: "motion", alvoId: p.id, nome: p.config.nome, engine }); toast.success("Envio confirmado. Pode fechar o navegador; o servidor continua renderizando."); }
+    catch (e) { toast.error(e instanceof Error ? e.message : "Erro ao enviar"); }
+    finally { setEnviando(false); }
+  }
 
   return (
     <AppShell title={p.config.nome} actions={<>
@@ -80,8 +92,10 @@ function Editor() {
       <button onClick={exportar} disabled={!ready.length} className="inline-flex items-center gap-2 rounded-md bg-gradient-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-40"><Download className="h-4 w-4" />Exportar HTML</button>
       <Link to="/renderizar/$id" params={{ id: p.id }} disabled={!ready.length} className="inline-flex items-center gap-2 rounded-md border border-primary px-4 py-2 text-sm font-semibold text-primary"><Film className="h-4 w-4" />Gravar no navegador</Link>
       <select value={engine} onChange={(e) => setEngine(e.target.value as Engine)} className="rounded-md border border-input bg-background px-2 py-2 text-sm"><option value="ffmpeg">FFmpeg</option><option value="hyperframes">HyperFrames</option></select>
-      <button disabled={!ready.length || busy} onClick={async () => { await enfileirar({ modulo: "motion", alvoId: p.id, nome: p.config.nome, engine }); toast.success("Adicionado à fila de renderização"); }} className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm hover:border-primary disabled:opacity-40"><ListPlus className="h-4 w-4" />Adicionar à fila</button>
+      <Button disabled={!ready.length || busy || enviando} onClick={renderizar}>{enviando ? <Loader2 className="animate-spin" /> : <Film />}{enviando ? "Enviando…" : "Renderizar vídeo"}</Button>
+      <Button variant="outline" disabled={!ready.length || busy || enviando} onClick={renderizar}><ListPlus />Adicionar à fila</Button>
     </>}>
+      <RenderStatus alvoId={id} />
       <div className="grid gap-6 xl:grid-cols-[260px_1fr_300px]">
         <aside className="space-y-4">
           <div className="rounded-lg border border-border bg-card p-4">

@@ -13,6 +13,8 @@ export const Route = createFileRoute("/admin")({
     { name: "description", content: "Token da OpenAI, modelo, agentes e armazenamento do MotionMRO." },
     { property: "og:title", content: "Administração — MotionMRO" },
     { property: "og:description", content: "Token da OpenAI, modelo, agentes e armazenamento do MotionMRO." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary_large_image" },
   ] }),
   component: Admin,
 });
@@ -88,7 +90,7 @@ function Admin() {
           <p className="mt-1 text-sm text-muted-foreground">Endereço do servidor que gera o MP4 final — no seu computador (localhost) ou numa VPS. O programa do servidor está na pasta <code>render-server</code> do projeto.</p>
           <div className="mt-4 grid gap-3 md:grid-cols-[1fr_auto_auto]">
             <input className={field} value={servidor} onChange={(e) => setServidor(e.target.value)} placeholder="http://localhost:4400" />
-            <button onClick={async () => { setStatus("Testando…"); try { const r = await fetch(servidor.replace(/\/+$/, "")); setStatus(r.ok ? "Servidor conectado ✓" : "Servidor respondeu com erro"); } catch { setStatus("Servidor não encontrado"); } }} className="rounded-md border border-border px-4 py-2 text-sm">Testar</button>
+            <button onClick={async () => { setStatus("Testando…"); try { const r = await fetch(servidor.replace(/\/+$/, ""), { signal: AbortSignal.timeout(10000) }); const info = await r.json(); setStatus(r.ok && info.backgroundQueue === true ? "Servidor v2 conectado ✓ · renderização em segundo plano" : r.ok ? "Servidor antigo: atualize o programa do servidor para ativar a fila em segundo plano." : "Servidor respondeu com erro"); } catch { setStatus("Servidor não encontrado"); } }} className="rounded-md border border-border px-4 py-2 text-sm">Testar</button>
             <button onClick={salvar} className="rounded-md bg-gradient-primary px-5 py-2 text-sm font-semibold text-primary-foreground">Salvar</button>
           </div>
           {status && <p className="mt-2 text-xs text-muted-foreground">{status}</p>}
@@ -99,7 +101,7 @@ function Admin() {
         </section>
         <section className="rounded-lg border border-border bg-card p-5">
           <h3 className="font-semibold">Armazenamento</h3>
-          <p className="mt-2 text-sm text-muted-foreground">Projetos, vídeos e o token ficam salvos só neste navegador, sem serviços externos.</p>
+          <p className="mt-2 text-sm text-muted-foreground">Projetos e configurações ficam neste navegador. Ao renderizar, os arquivos necessários são enviados ao seu servidor, que guarda a fila e o MP4 até você remover o trabalho.</p>
         </section>
       </div>
     </AppShell>
