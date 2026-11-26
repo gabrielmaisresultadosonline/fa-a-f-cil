@@ -1,6 +1,6 @@
 # Roadmap MotionMRO
-- [ ] Pedido original completo em Meus projetos, cópia e reutilização
-- [ ] Nome somente externo e telas de criação adaptáveis
+- [x] Pedido original completo em Meus projetos, cópia e reutilização
+- [x] Nome excluído do pedido enviado à IA; telas verificadas em 375, 887 e 1440px
 - [x] Fase 1–3: dashboard, Motion IA com agentes, editor com prévia e exportação HTML
 - [x] Fase 4: Video Overlay IA (envio, transcrição, overlays)
 - [x] Exportação MP4 no servidor próprio (FFmpeg / HyperFrames)
