@@ -3,6 +3,7 @@ import { saveProject, type Project, type Scene } from "./projects";
 import { gerarVoz } from "./tts";
 import type { CustoMeta } from "./costs";
 import { buildMotionBrief } from "./projectBrief";
+import { prepareSceneHtml, validateSceneLayout } from "./sceneLayout";
 
 const meta = (p: Project, etapa: string): CustoMeta => ({ projetoId: p.id, projetoNome: p.config.nome, modulo: "motion", etapa });
 
@@ -42,7 +43,7 @@ export async function runPipeline(p: Project, onUpdate: (p: Project) => void) {
       p.agentes.locutor = "executando";
       for (let i = 0; i < p.cenas.length; i++) {
         const cena = p.cenas[i];
-      if (!cena) continue;
+        if (!cena) continue;
         if (cena.audio) continue;
         const texto = (cena.narracao || [cena.textoPrincipal, cena.textoSecundario].filter(Boolean).join(". ")).trim();
         if (!texto) continue;
@@ -52,10 +53,14 @@ export async function runPipeline(p: Project, onUpdate: (p: Project) => void) {
       p.agentes.locutor = "concluido";
     }
     p.agentes.validador = "executando"; await push("Validador", "Validando cenas…");
-    const problems = p.cenas.filter((x) => !x.html || !/<\/html>/i.test(x.html)).length;
+    for (const scene of p.cenas) {
+      if (!scene.html) throw new Error("Cena sem código. Continue a produção.");
+      const issues = await validateSceneLayout(scene.html, c.largura, c.altura);
+      if (issues.length) throw new Error(`Cena ${scene.titulo}: ${issues.join(" ")}`);
+    }
     p.agentes.validador = "concluido";
     p.status = "pronto";
-    await push("Validador", problems ? `${problems} cena(s) podem estar incompletas — regenere-as.` : "Todas as cenas aprovadas.");
+    await push("Validador", "Cenas verificadas no formato escolhido, com ajuste de enquadramento.");
   } catch (e) {
     for (const k of Object.keys(p.agentes) as (keyof Project["agentes"])[]) if (p.agentes[k] === "executando") p.agentes[k] = "erro";
     p.status = "erro";
@@ -69,7 +74,13 @@ export async function generateScene(p: Project, i: number, ajuste?: string) {
   if (!cena) throw new Error("Cena não encontrada.");
   const prev = p.cenas[i - 1]; const next = p.cenas[i + 1];
   const ctx = `DIREÇÃO CRIATIVA:\n${p.direcao}\n\nCENA ${i + 1} de ${p.cenas.length} (duração ${cena.duracao}s):\n${JSON.stringify({ ...cena, html: undefined }, null, 2)}\n\nCena anterior: ${prev?.titulo ?? "nenhuma (abertura)"}\nPróxima cena: ${next?.titulo ?? "nenhuma (encerramento)"}\nIdioma: ${c.idioma}. Velocidade: ${c.velocidade}. Intensidade: ${c.intensidade}.${ajuste ? `\n\nAJUSTE PEDIDO PELO USUÁRIO: ${ajuste}${cena.html ? `\n\nCÓDIGO ATUAL:\n${cena.html.slice(0, 30000)}` : ""}` : ""}`;
-  const r = await callAgent({ agente: "desenvolvedor", contexto: ctx, largura: c.largura, altura: c.altura }, meta(p, `Dev. de Motion — cena ${i + 1}`));
-  cena.html = r.text;
-  await saveProject(p);
+  let issues: string[] = [];
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const contexto = attempt ? `${ctx}\n\nCORRIJA O ENQUADRAMENTO. A validação no navegador detectou: ${issues.join(" ")} Refaça a composição no formato ${c.largura}x${c.altura}, com todos os textos e ícones legíveis dentro do quadro.` : ctx;
+    const r = await callAgent({ agente: "desenvolvedor", contexto, largura: c.largura, altura: c.altura }, meta(p, `Dev. de Motion — cena ${i + 1}${attempt ? " — correção de layout" : ""}`));
+    const html = prepareSceneHtml(r.text, c.largura, c.altura);
+    issues = await validateSceneLayout(html, c.largura, c.altura);
+    if (!issues.length) { cena.html = html; await saveProject(p); return; }
+  }
+  throw new Error(`Cena ${i + 1} não aprovada: ${issues.join(" ")}`);
 }

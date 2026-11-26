@@ -1,4 +1,6 @@
 # Roadmap MotionMRO
+- [x] Enquadramento automático em prévia/exportação; validação visual e uma tentativa de correção no Motion e Overlay
+- [x] Direção visual com SVG e ilustrações para todos os modelos; testes em formatos vertical, quadrado e horizontal
 - [x] Pedido original completo em Meus projetos, cópia e reutilização
 - [x] Nome excluído do pedido enviado à IA; telas verificadas em 375, 887 e 1440px
 - [x] Fase 1–3: dashboard, Motion IA com agentes, editor com prévia e exportação HTML

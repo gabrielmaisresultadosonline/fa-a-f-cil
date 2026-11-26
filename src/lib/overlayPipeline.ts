@@ -4,6 +4,7 @@ import { transcribe } from "./transcribe";
 import { saveOverlay, type Overlay, type OverlayProject } from "./overlays";
 import { logCusto, type CustoMeta } from "./costs";
 import { getPrecos } from "./settings";
+import { prepareSceneHtml, validateSceneLayout } from "./sceneLayout";
 
 const meta = (p: OverlayProject, etapa: string): CustoMeta => ({ projetoId: p.id, projetoNome: p.nome, modulo: "overlay", etapa });
 
@@ -40,8 +41,16 @@ export async function runOverlayPipeline(p: OverlayProject, onUpdate: (p: Overla
 }
 
 export async function generateOverlay(p: OverlayProject, i: number, ajuste?: string) {
-  const o = p.overlays[i]!;
+  const o = p.overlays[i];
+  if (!o) throw new Error("Overlay não encontrado.");
   const ctx = `ESTILO: ${p.estilo}\n\nOVERLAY (duração ${(o.fim - o.inicio).toFixed(2)}s):\n${JSON.stringify({ ...o, html: undefined }, null, 2)}${ajuste ? `\n\nAJUSTE PEDIDO: ${ajuste}${o.html ? `\n\nCÓDIGO ATUAL:\n${o.html.slice(0, 30000)}` : ""}` : ""}`;
-  const r = await callAgent({ agente: "overlay_dev", contexto: ctx, largura: p.largura, altura: p.altura }, meta(p, `Overlay ${i + 1}`));
-  o.html = r.text; await saveOverlay(p);
+  let issues: string[] = [];
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const contexto = attempt ? `${ctx}\n\nCorrija o layout no formato ${p.largura}x${p.altura}: ${issues.join(" ")} Mantenha todos os textos e ícones dentro do quadro, sem cobrir o rosto.` : ctx;
+    const r = await callAgent({ agente: "overlay_dev", contexto, largura: p.largura, altura: p.altura }, meta(p, `Overlay ${i + 1}${attempt ? " — correção de layout" : ""}`));
+    const html = prepareSceneHtml(r.text, p.largura, p.altura);
+    issues = await validateSceneLayout(html, p.largura, p.altura);
+    if (!issues.length) { o.html = html; await saveOverlay(p); return; }
+  }
+  throw new Error(`Overlay ${i + 1} não aprovado: ${issues.join(" ")}`);
 }

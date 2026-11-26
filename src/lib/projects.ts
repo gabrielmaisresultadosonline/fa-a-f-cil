@@ -1,5 +1,6 @@
 import { get, set, del, keys } from "idb-keyval";
 import type { Som } from "./sfx";
+import { prepareSceneHtml } from "./sceneLayout";
 
 export type AgentKey = "diretor" | "roteirista" | "desenvolvedor" | "locutor" | "validador";
 export type AgentStatus = "aguardando" | "executando" | "concluido" | "erro";
@@ -89,7 +90,7 @@ export const AGENTES: { key: AgentKey; nome: string; desc: string }[] = [
 export function buildFullHtml(p: Project) {
   const { largura: w, altura: h } = p.config;
   const scenes = p.cenas.filter((c) => c.html);
-  const data = JSON.stringify(scenes.map((c) => ({ d: c.duracao, html: c.html })));
+  const data = JSON.stringify(scenes.map((c) => ({ d: c.duracao, html: c.html ? prepareSceneHtml(c.html, w, h) : "" })));
   return `<!doctype html><html><head><meta charset="utf-8"><title>${p.config.nome}</title>
 <style>html,body{margin:0;background:#000;height:100%;display:flex;align-items:center;justify-content:center;overflow:hidden}
 #s{width:${w}px;height:${h}px;transform-origin:center;border:0}</style></head><body>

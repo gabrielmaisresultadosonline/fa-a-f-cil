@@ -2,6 +2,7 @@ import type { OverlayProject } from "./overlays";
 import type { Project } from "./projects";
 import { renderTrilhaWav } from "./sfx";
 import { getCreds, SERVIDOR_PADRAO } from "./settings";
+import { prepareSceneHtml } from "./sceneLayout";
 
 export type Engine = "ffmpeg" | "hyperframes";
 export function servidorUrl() { return (getCreds().servidor || SERVIDOR_PADRAO).replace(/\/+$/, ""); }
@@ -46,7 +47,7 @@ export async function prepararOverlay(p: OverlayProject, engine: Engine) {
   const overlays = p.overlays.filter((o) => o.html);
   const fd = new FormData();
   fd.append("manifest", JSON.stringify({ nome: p.nome, engine, largura: p.largura, altura: p.altura, duracao: p.duracao, fps: 30,
-    overlays: overlays.map((o) => ({ inicio: o.inicio, fim: o.fim, camera: o.camera, html: o.html })) }));
+    overlays: overlays.map((o) => ({ inicio: o.inicio, fim: o.fim, camera: o.camera, html: o.html ? prepareSceneHtml(o.html, p.largura, p.altura) : "" })) }));
   fd.append("video", p.video, "video");
   if (p.sons) {
     const ev = overlays.flatMap((o) => (o.sons ?? []).map((s) => ({ t: o.inicio + s.t, tipo: s.tipo })));
@@ -60,7 +61,7 @@ export async function prepararMotion(p: Project, engine: Engine) {
   let t = 0;
   const camadas = p.cenas.flatMap((c) => {
     if (!c.html) return [];
-    const o = { inicio: t, fim: t + c.duracao, camera: "nenhum", html: c.html, cena: c }; t += c.duracao; return [o];
+    const o = { inicio: t, fim: t + c.duracao, camera: "nenhum", html: prepareSceneHtml(c.html, p.config.largura, p.config.altura), cena: c }; t += c.duracao; return [o];
   });
   if (!t) throw new Error("O projeto não tem cenas prontas para renderizar");
   const fd = new FormData();

@@ -39,6 +39,7 @@ async function renderOverlayFrames(browser, ov, i, m, dir, onFrame) {
   await page.setViewport({ width: m.largura, height: m.altura });
   await page.setContent(ov.html, { waitUntil: "networkidle0", timeout: 60000 });
   await page.evaluate(() => document.fonts?.ready);
+  await page.evaluate(() => window.__motionLayoutReady);
   const t0 = await page.evaluate(() => (window.gsap ? window.gsap.globalTimeline.time() : 0));
   const dur = ov.fim - ov.inicio; const n = Math.max(1, Math.round(dur * m.fps));
   for (let f = 0; f < n; f++) {

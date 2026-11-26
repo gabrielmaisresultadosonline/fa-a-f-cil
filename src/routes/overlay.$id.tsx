@@ -13,6 +13,7 @@ import { audioCtx, recordDest, scheduleSons } from "@/lib/sfx";
 import { download, recordRegion } from "@/lib/recorder";
 import type { Engine } from "@/lib/serverRender";
 import { enfileirar } from "@/lib/queue";
+import { prepareSceneHtml } from "@/lib/sceneLayout";
 
 export const Route = createFileRoute("/overlay/$id")({
   validateSearch: z.object({ iniciar: z.boolean().optional() }),
@@ -145,7 +146,7 @@ function OverlayEditor() {
               <video ref={video} src={url} controls={!rec} onPlay={wireAudio} playsInline className="absolute inset-0 h-full w-full object-cover"
                 style={camera(cur?.camera, cur ? cur.fim - cur.inicio : 0)} />
               {cur?.html && (
-                <iframe key={cur.id} title="overlay" srcDoc={cur.html} sandbox="allow-scripts" className="pointer-events-none absolute left-0 top-0"
+                <iframe key={cur.id} title="overlay" srcDoc={prepareSceneHtml(cur.html, p.largura, p.altura)} sandbox="allow-scripts" className="pointer-events-none absolute left-0 top-0"
                   style={{ width: p.largura, height: p.altura, transform: `scale(${scale})`, transformOrigin: "0 0", border: 0, background: "transparent", colorScheme: "normal" }} />
               )}
             </div>

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type Ref } from "react";
 import type { Scene } from "@/lib/projects";
 import { playBlob, scheduleSons } from "@/lib/sfx";
+import { prepareSceneHtml } from "@/lib/sceneLayout";
 
 export function ScenePlayer({ scenes, width, height, start = 0, playing, onIndex, loopSingle, sfx = false, voz = true, stageRef, noLoop }: {
   scenes: Scene[]; width: number; height: number; start?: number; playing: boolean; onIndex?: (i: number) => void; loopSingle?: boolean;
@@ -33,7 +34,7 @@ export function ScenePlayer({ scenes, width, height, start = 0, playing, onIndex
     <div ref={box} className="relative grid h-full w-full place-items-center overflow-hidden rounded-lg bg-stage grid-lines">
       <div ref={stageRef} style={{ width: width * scale, height: height * scale }} className="relative overflow-hidden rounded-md shadow-glow">
         {cur?.html ? (
-          <iframe key={`${cur.id}-${nonce}-${playing}`} title={cur.titulo} srcDoc={cur.html} sandbox="allow-scripts"
+          <iframe key={`${cur.id}-${nonce}-${playing}`} title={cur.titulo} srcDoc={prepareSceneHtml(cur.html, width, height)} sandbox="allow-scripts"
             style={{ width, height, transform: `scale(${scale})`, transformOrigin: "0 0", border: 0 }} />
         ) : (
           <div className="grid h-full place-items-center bg-card text-sm text-muted-foreground">Cena ainda não programada</div>
