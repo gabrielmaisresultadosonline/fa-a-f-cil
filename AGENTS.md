@@ -31,5 +31,5 @@ use the editor.
 
 - MotionMRO: projects persist in browser IndexedDB (src/lib/projects.ts) because the spec requires local-only storage; AI agents run via one server function (src/lib/agents.functions.ts) and the client orchestrates the pipeline (src/lib/pipeline.ts) so progress shows live.
 
-- MotionMRO AI: when the user saves an OpenAI token in /admin (localStorage, src/lib/settings.ts) agents call OpenAI directly via the server function; without it they fall back to the Lovable gateway — the user requires their own OpenAI token.
+- MotionMRO AI: when the user saves an OpenAI token in /admin (localStorage, src/lib/settings.ts) agents call OpenAI directly via the server function; without it no token means AI is blocked with a message — the user requires their own OpenAI account, not the Lovable gateway.
 - Video export records the player area of the current tab (getDisplayMedia + Region Capture + MediaRecorder, src/lib/recorder.ts) because no server-side ffmpeg/HyperFrames is available; sound effects are synthesized with WebAudio (src/lib/sfx.ts).

@@ -29,11 +29,12 @@ export const runAgent = createServerFn({ method: "POST" })
       const r = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: { Authorization: `Bearer ${data.token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ model: data.modelo || "gpt-4.1", messages: [{ role: "system", content: system }, { role: "user", content: data.contexto }] }),
+        body: JSON.stringify({ model: data.modelo || "gpt-4.1-mini", messages: [{ role: "system", content: system }, { role: "user", content: data.contexto }] }),
       });
       if (!r.ok) {
         const t = await r.text();
         if (r.status === 401) throw new Error("Token da OpenAI inválido. Confira em Administração.");
+        if (r.status === 404) throw new Error(`O modelo "${data.modelo}" não está disponível na sua conta OpenAI. Escolha outro em Administração.`);
         if (r.status === 429) throw new Error("A OpenAI recusou por limite ou falta de saldo na sua conta.");
         throw new Error(`OpenAI ${r.status}: ${t.slice(0, 200)}`);
       }
