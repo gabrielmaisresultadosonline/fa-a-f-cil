@@ -1,10 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Play, Pause, Download, RefreshCw, Loader2, Check, X, Circle, Wand2 } from "lucide-react";
+import { Play, Pause, Download, Film, RefreshCw, Loader2, Check, X, Circle, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AppShell } from "@/components/motion/AppShell";
 import { ScenePlayer } from "@/components/motion/ScenePlayer";
+import { SfxToggle } from "@/components/motion/SfxToggle";
 import { AGENTES, buildFullHtml, getProject, saveProject, type Project, type AgentStatus } from "@/lib/projects";
 import { generateScene, runPipeline } from "@/lib/pipeline";
 
@@ -74,6 +75,7 @@ function Editor() {
     <AppShell title={p.config.nome} actions={<>
       {(p.status === "erro" || (p.status === "rascunho" && !busy)) && <button onClick={() => start(p)} disabled={busy} className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm hover:border-primary"><RefreshCw className="h-4 w-4" />{p.status === "erro" ? "Continuar produção" : "Iniciar produção"}</button>}
       <button onClick={exportar} disabled={!ready.length} className="inline-flex items-center gap-2 rounded-md bg-gradient-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-40"><Download className="h-4 w-4" />Exportar HTML</button>
+      <Link to="/renderizar/$id" params={{ id: p.id }} disabled={!ready.length} className="inline-flex items-center gap-2 rounded-md border border-primary px-4 py-2 text-sm font-semibold text-primary"><Film className="h-4 w-4" />Renderizar vídeo</Link>
     </>}>
       <div className="grid gap-6 xl:grid-cols-[260px_1fr_300px]">
         <aside className="space-y-4">
@@ -91,11 +93,12 @@ function Editor() {
         <section className="flex min-w-0 flex-col gap-4">
           <div className="h-[56vh] min-h-[320px]">
             <ScenePlayer scenes={single ? (cena ? [cena] : []) : ready} width={p.config.largura} height={p.config.altura}
-              start={single ? 0 : Math.max(0, ready.findIndex((c) => c.id === cena?.id))} playing={playing} loopSingle={single} />
+              start={single ? 0 : Math.max(0, ready.findIndex((c) => c.id === cena?.id))} playing={playing} loopSingle={single} sfx={!!p.config.sons} />
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <button onClick={() => setPlaying((x) => !x)} className="inline-flex items-center gap-2 rounded-md bg-secondary px-3 py-2 text-sm">{playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}{playing ? "Pausar" : "Reproduzir"}</button>
             <button onClick={() => setSingle((x) => !x)} className="rounded-md border border-border px-3 py-2 text-sm data-[on=true]:border-primary data-[on=true]:text-primary" data-on={single}>{single ? "Só esta cena" : "Vídeo completo"}</button>
+            <SfxToggle on={!!p.config.sons} onChange={async (v) => { p.config.sons = v; await saveProject(p); setP({ ...p }); }} />
             <span className="ml-auto font-mono text-xs text-muted-foreground">{ready.length}/{p.cenas.length} cenas · {p.cenas.reduce((s, c) => s + c.duracao, 0)}s</span>
           </div>
           <div className="flex gap-2 overflow-x-auto rounded-lg border border-border bg-card p-3">
@@ -122,6 +125,8 @@ function Editor() {
               {cena.textoSecundario && <p className="text-muted-foreground">{cena.textoSecundario}</p>}
               <p className="text-xs text-muted-foreground">{cena.descricaoVisual}</p>
               <p className="text-xs"><span className="text-muted-foreground">Animação:</span> {cena.animacao}</p>
+              {cena.movimentoCamera && <p className="text-xs"><span className="text-muted-foreground">Câmera:</span> {cena.movimentoCamera}</p>}
+              {!!cena.sons?.length && <p className="text-xs"><span className="text-muted-foreground">Sons:</span> {cena.sons.map((s) => `${s.tipo} ${s.t}s`).join(" · ")}</p>}
               <textarea value={ajuste} onChange={(e) => setAjuste(e.target.value)} rows={3} placeholder="Peça um ajuste: ex. deixe o texto maior e a entrada mais rápida"
                 className="w-full rounded-md border border-input bg-background p-2 text-sm" />
               <button onClick={regen} disabled={busy} className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-gradient-primary px-3 py-2 font-semibold text-primary-foreground disabled:opacity-40">

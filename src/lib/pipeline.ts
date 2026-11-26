@@ -1,4 +1,4 @@
-import { runAgent } from "./agents.functions";
+import { callAgent } from "./ai";
 import { saveProject, type Project, type Scene } from "./projects";
 
 export async function runPipeline(p: Project, onUpdate: (p: Project) => void) {
@@ -8,18 +8,18 @@ export async function runPipeline(p: Project, onUpdate: (p: Project) => void) {
     await saveProject(p);
     onUpdate({ ...p });
   };
-  const brief = `Projeto: ${c.nome}\nIdeia: ${c.ideia}\nDuração total: ${c.duracao}s\nFormato: ${c.largura}x${c.altura}\nEstilo: ${c.estilo || "a IA decide"}\nPaleta: ${c.paleta || "a IA decide"}\nPúblico: ${c.publico || "a IA decide"}\nObjetivo: ${c.objetivo || "a IA decide"}\nIdioma dos textos: ${c.idioma}\nVelocidade: ${c.velocidade}\nIntensidade dos efeitos: ${c.intensidade}`;
+  const brief = `Projeto: ${c.nome}\nIdeia: ${c.ideia}\nDuração total: ${c.duracao}s\nFormato: ${c.largura}x${c.altura}\nEstilo: ${c.estilo || "a IA decide"}\nPaleta: ${c.paleta || "a IA decide"}\nPúblico: ${c.publico || "a IA decide"}\nObjetivo: ${c.objetivo || "a IA decide"}\nIdioma dos textos: ${c.idioma}\nVelocidade: ${c.velocidade}\nIntensidade dos efeitos: ${c.intensidade}\nEfeitos sonoros: ${c.sons ? "SIM — escolha os melhores momentos" : "não"}\nMovimentos de câmera: sim, cinematográficos`;
   const base = { largura: c.largura, altura: c.altura };
   p.status = "produzindo";
   try {
     if (!p.direcao) {
       p.agentes.diretor = "executando"; await push("Diretor Criativo", "Interpretando a ideia…");
-      const r = await runAgent({ data: { ...base, agente: "diretor", contexto: brief } });
+      const r = await callAgent({ ...base, agente: "diretor", contexto: brief });
       p.direcao = r.text; p.agentes.diretor = "concluido"; await push("Diretor Criativo", "Direção criativa definida.");
     }
     if (!p.cenas.length) {
       p.agentes.roteirista = "executando"; await push("Roteirista", "Escrevendo o roteiro…");
-      const r = await runAgent({ data: { ...base, agente: "roteirista", contexto: `${brief}\n\nDIREÇÃO CRIATIVA:\n${p.direcao}` } });
+      const r = await callAgent({ ...base, agente: "roteirista", contexto: `${brief}\n\nDIREÇÃO CRIATIVA:\n${p.direcao}` });
       const parsed = JSON.parse(r.text.slice(r.text.indexOf("{"), r.text.lastIndexOf("}") + 1)) as { cenas: Omit<Scene, "id">[] };
       p.cenas = parsed.cenas.map((x) => ({ ...x, duracao: Number(x.duracao) || 4, id: crypto.randomUUID() }));
       p.agentes.roteirista = "concluido"; await push("Roteirista", `Roteiro com ${p.cenas.length} cenas.`);
@@ -49,7 +49,7 @@ export async function generateScene(p: Project, i: number, ajuste?: string) {
   const cena = p.cenas[i]!;
   const prev = p.cenas[i - 1]; const next = p.cenas[i + 1];
   const ctx = `DIREÇÃO CRIATIVA:\n${p.direcao}\n\nCENA ${i + 1} de ${p.cenas.length} (duração ${cena.duracao}s):\n${JSON.stringify({ ...cena, html: undefined }, null, 2)}\n\nCena anterior: ${prev?.titulo ?? "nenhuma (abertura)"}\nPróxima cena: ${next?.titulo ?? "nenhuma (encerramento)"}\nIdioma: ${c.idioma}. Velocidade: ${c.velocidade}. Intensidade: ${c.intensidade}.${ajuste ? `\n\nAJUSTE PEDIDO PELO USUÁRIO: ${ajuste}${cena.html ? `\n\nCÓDIGO ATUAL:\n${cena.html.slice(0, 30000)}` : ""}` : ""}`;
-  const r = await runAgent({ data: { agente: "desenvolvedor", contexto: ctx, largura: c.largura, altura: c.altura } });
+  const r = await callAgent({ agente: "desenvolvedor", contexto: ctx, largura: c.largura, altura: c.altura });
   cena.html = r.text;
   await saveProject(p);
 }

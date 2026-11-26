@@ -12,9 +12,11 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as NovoRouteImport } from './routes/novo'
-import { Route as OverlayRouteImport } from './routes/overlay'
+import { Route as OverlayIndexRouteImport } from './routes/overlay.index'
+import { Route as OverlayIdRouteImport } from './routes/overlay.$id'
 import { Route as ProjetosIndexRouteImport } from './routes/projetos.index'
 import { Route as ProjetosIdRouteImport } from './routes/projetos.$id'
+import { Route as RenderizarIdRouteImport } from './routes/renderizar.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -31,9 +33,14 @@ const NovoRoute = NovoRouteImport.update({
   path: '/novo',
   getParentRoute: () => rootRouteImport,
 } as any)
-const OverlayRoute = OverlayRouteImport.update({
-  id: '/overlay',
-  path: '/overlay',
+const OverlayIndexRoute = OverlayIndexRouteImport.update({
+  id: '/overlay/',
+  path: '/overlay/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OverlayIdRoute = OverlayIdRouteImport.update({
+  id: '/overlay/$id',
+  path: '/overlay/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProjetosIndexRoute = ProjetosIndexRouteImport.update({
@@ -46,21 +53,30 @@ const ProjetosIdRoute = ProjetosIdRouteImport.update({
   path: '/projetos/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RenderizarIdRoute = RenderizarIdRouteImport.update({
+  id: '/renderizar/$id',
+  path: '/renderizar/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/novo': typeof NovoRoute
-  '/overlay': typeof OverlayRoute
+  '/overlay/$id': typeof OverlayIdRoute
   '/projetos/$id': typeof ProjetosIdRoute
+  '/renderizar/$id': typeof RenderizarIdRoute
+  '/overlay/': typeof OverlayIndexRoute
   '/projetos/': typeof ProjetosIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/novo': typeof NovoRoute
-  '/overlay': typeof OverlayRoute
+  '/overlay/$id': typeof OverlayIdRoute
   '/projetos/$id': typeof ProjetosIdRoute
+  '/renderizar/$id': typeof RenderizarIdRoute
+  '/overlay': typeof OverlayIndexRoute
   '/projetos': typeof ProjetosIndexRoute
 }
 export interface FileRoutesById {
@@ -68,23 +84,42 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/novo': typeof NovoRoute
-  '/overlay': typeof OverlayRoute
+  '/overlay/$id': typeof OverlayIdRoute
   '/projetos/$id': typeof ProjetosIdRoute
+  '/renderizar/$id': typeof RenderizarIdRoute
+  '/overlay/': typeof OverlayIndexRoute
   '/projetos/': typeof ProjetosIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/admin' | '/novo' | '/overlay' | '/projetos/$id' | '/projetos/'
+    | '/'
+    | '/admin'
+    | '/novo'
+    | '/overlay/$id'
+    | '/projetos/$id'
+    | '/renderizar/$id'
+    | '/overlay/'
+    | '/projetos/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin' | '/novo' | '/overlay' | '/projetos/$id' | '/projetos'
+  to:
+    | '/'
+    | '/admin'
+    | '/novo'
+    | '/overlay/$id'
+    | '/projetos/$id'
+    | '/renderizar/$id'
+    | '/overlay'
+    | '/projetos'
   id:
     | '__root__'
     | '/'
     | '/admin'
     | '/novo'
-    | '/overlay'
+    | '/overlay/$id'
     | '/projetos/$id'
+    | '/renderizar/$id'
+    | '/overlay/'
     | '/projetos/'
   fileRoutesById: FileRoutesById
 }
@@ -92,8 +127,10 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
   NovoRoute: typeof NovoRoute
-  OverlayRoute: typeof OverlayRoute
+  OverlayIdRoute: typeof OverlayIdRoute
   ProjetosIdRoute: typeof ProjetosIdRoute
+  RenderizarIdRoute: typeof RenderizarIdRoute
+  OverlayIndexRoute: typeof OverlayIndexRoute
   ProjetosIndexRoute: typeof ProjetosIndexRoute
 }
 
@@ -120,11 +157,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof NovoRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/overlay': {
-      id: '/overlay'
+    '/overlay/': {
+      id: '/overlay/'
       path: '/overlay'
-      fullPath: '/overlay'
-      preLoaderRoute: typeof OverlayRouteImport
+      fullPath: '/overlay/'
+      preLoaderRoute: typeof OverlayIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/overlay/$id': {
+      id: '/overlay/$id'
+      path: '/overlay/$id'
+      fullPath: '/overlay/$id'
+      preLoaderRoute: typeof OverlayIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/projetos/': {
@@ -141,6 +185,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjetosIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/renderizar/$id': {
+      id: '/renderizar/$id'
+      path: '/renderizar/$id'
+      fullPath: '/renderizar/$id'
+      preLoaderRoute: typeof RenderizarIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -148,8 +199,10 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
   NovoRoute: NovoRoute,
-  OverlayRoute: OverlayRoute,
+  OverlayIdRoute: OverlayIdRoute,
   ProjetosIdRoute: ProjetosIdRoute,
+  RenderizarIdRoute: RenderizarIdRoute,
+  OverlayIndexRoute: OverlayIndexRoute,
   ProjetosIndexRoute: ProjetosIndexRoute,
 }
 export const routeTree = rootRouteImport

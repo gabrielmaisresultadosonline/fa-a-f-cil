@@ -1,4 +1,5 @@
 import { get, set, del, keys } from "idb-keyval";
+import type { Som } from "./sfx";
 
 export type AgentKey = "diretor" | "roteirista" | "desenvolvedor" | "validador";
 export type AgentStatus = "aguardando" | "executando" | "concluido" | "erro";
@@ -13,6 +14,8 @@ export interface Scene {
   animacao: string;
   transicaoEntrada: string;
   transicaoSaida: string;
+  movimentoCamera?: string;
+  sons?: Som[];
   html?: string;
 }
 
@@ -29,6 +32,7 @@ export interface ProjectConfig {
   idioma: string;
   velocidade: string;
   intensidade: string;
+  sons?: boolean;
 }
 
 export interface Project {
