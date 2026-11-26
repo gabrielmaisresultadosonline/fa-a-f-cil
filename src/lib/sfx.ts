@@ -57,3 +57,32 @@ export function scheduleSons(sons: Som[] | undefined, enabled: boolean, offset =
   const ids = sons.filter((s) => s.t >= offset).map((s) => setTimeout(() => playSfx(s.tipo), (s.t - offset) * 1000));
   return () => ids.forEach(clearTimeout);
 }
+
+/** Toca um áudio (narração) passando pela mesa de som, para também entrar na gravação. */
+export function playBlob(blob: Blob) {
+  const c = audioCtx(); const a = new Audio(URL.createObjectURL(blob));
+  const src = c.createMediaElementSource(a); src.connect(c.destination); if (rec) src.connect(rec);
+  void a.play();
+  return () => { a.pause(); src.disconnect(); URL.revokeObjectURL(a.src); };
+}
+
+/** Trilha completa (efeitos + narrações) como WAV, para o servidor de renderização. */
+export async function renderTrilhaWav(eventos: { t: number; tipo: string }[], falas: { t: number; blob: Blob }[], duracao: number) {
+  const rate = 48000; const c = new OfflineAudioContext(2, Math.ceil(duracao * rate), rate);
+  const g = c.createGain(); g.gain.value = 0.5; g.connect(c.destination);
+  for (const e of eventos) if (e.t < duracao) synth(c, g, e.tipo, Math.max(0, e.t));
+  for (const f of falas) {
+    const b = await c.decodeAudioData(await f.blob.arrayBuffer());
+    const s = c.createBufferSource(); s.buffer = b; s.connect(c.destination); s.start(f.t);
+  }
+  return encodeStereo(await c.startRendering());
+}
+function encodeStereo(buf: AudioBuffer) {
+  const rate = buf.sampleRate, L = buf.getChannelData(0), R = buf.getChannelData(buf.numberOfChannels > 1 ? 1 : 0), n = L.length;
+  const ab = new ArrayBuffer(44 + n * 4); const v = new DataView(ab);
+  const w = (o: number, s: string) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+  w(0, "RIFF"); v.setUint32(4, 36 + n * 4, true); w(8, "WAVE"); w(12, "fmt "); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 2, true);
+  v.setUint32(24, rate, true); v.setUint32(28, rate * 4, true); v.setUint16(32, 4, true); v.setUint16(34, 16, true); w(36, "data"); v.setUint32(40, n * 4, true);
+  for (let i = 0; i < n; i++) { v.setInt16(44 + i * 4, Math.max(-1, Math.min(1, L[i]!)) * 0x7fff, true); v.setInt16(46 + i * 4, Math.max(-1, Math.min(1, R[i]!)) * 0x7fff, true); }
+  return new Blob([ab], { type: "audio/wav" });
+}

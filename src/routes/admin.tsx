@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { Play } from "lucide-react";
+import { listarVozes, type Voz } from "@/lib/tts";
 import { AppShell } from "@/components/motion/AppShell";
 import { AGENTES } from "@/lib/projects";
 import { getCreds, MODELOS, MODELO_PADRAO, SERVIDOR_PADRAO, setCreds } from "@/lib/settings";
@@ -23,7 +25,21 @@ function Admin() {
   const [salvo, setSalvo] = useState(false);
   const [servidor, setServidor] = useState(SERVIDOR_PADRAO);
   const [status, setStatus] = useState("");
-  useEffect(() => { const c = getCreds(); setToken(c.token ?? ""); setModelo(c.modelo ?? MODELO_PADRAO); setSalvo(!!c.token); setServidor(c.servidor ?? SERVIDOR_PADRAO); }, []);
+  const [eleven, setEleven] = useState("");
+  const [voz, setVoz] = useState("");
+  const [vozModelo, setVozModelo] = useState("eleven_multilingual_v2");
+  const [vozes, setVozes] = useState<Voz[]>([]);
+  const [carregando, setCarregando] = useState(false);
+  async function carregarVozes(tk = eleven) {
+    if (!tk.trim()) return; setCarregando(true);
+    try { setVozes(await listarVozes(tk.trim())); } catch (e) { toast.error(e instanceof Error ? e.message : "Erro"); }
+    setCarregando(false);
+  }
+  function salvarVoz() {
+    const v = vozes.find((x) => x.voice_id === voz);
+    setCreds({ elevenToken: eleven.trim(), voz, vozNome: v?.name ?? getCreds().vozNome ?? "", vozModelo }); toast.success("Voz salva");
+  }
+  useEffect(() => { const c = getCreds(); setToken(c.token ?? ""); setModelo(c.modelo ?? MODELO_PADRAO); setSalvo(!!c.token); setServidor(c.servidor ?? SERVIDOR_PADRAO); setEleven(c.elevenToken ?? ""); setVoz(c.voz ?? ""); setVozModelo(c.vozModelo ?? "eleven_multilingual_v2"); if (c.elevenToken) void carregarVozes(c.elevenToken); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   function salvar() { setCreds({ token: token.trim(), modelo, servidor: servidor.trim() }); setSalvo(!!token.trim()); toast.success("Configuração salva"); }
   return (
     <AppShell title="Administração">
@@ -37,6 +53,35 @@ function Admin() {
             <button onClick={salvar} className="rounded-md bg-gradient-primary px-5 py-2 text-sm font-semibold text-primary-foreground">Salvar</button>
           </div>
           <p className={`mt-2 text-xs ${salvo ? "text-success" : "text-muted-foreground"}`}>{salvo ? "Token salvo neste navegador." : "Nenhum token salvo."}</p>
+        </section>
+        <section className="rounded-lg border border-border bg-card p-5 lg:col-span-2">
+          <h3 className="font-semibold">Voz — ElevenLabs</h3>
+          <p className="mt-1 text-sm text-muted-foreground">Cole o token da ElevenLabs (Profile → API Keys), carregue suas vozes e escolha a que será usada nas narrações.</p>
+          <div className="mt-4 grid gap-3 md:grid-cols-[1fr_auto]">
+            <input type="password" className={field} placeholder="Token da ElevenLabs" value={eleven} onChange={(e) => setEleven(e.target.value)} autoComplete="off" />
+            <button onClick={() => carregarVozes()} className="rounded-md border border-border px-4 py-2 text-sm">{carregando ? "Carregando…" : "Carregar vozes"}</button>
+          </div>
+          {vozes.length > 0 && (
+            <div className="mt-4 grid max-h-72 gap-2 overflow-auto sm:grid-cols-2 lg:grid-cols-3">
+              {vozes.map((v) => (
+                <button key={v.voice_id} onClick={() => setVoz(v.voice_id)} data-on={voz === v.voice_id}
+                  className="flex items-center gap-3 rounded-lg border border-border bg-background p-3 text-left text-sm transition-colors hover:border-primary data-[on=true]:border-primary data-[on=true]:shadow-glow">
+                  {v.preview_url && <span role="button" tabIndex={0} aria-label="Ouvir" onClick={(e) => { e.stopPropagation(); void new Audio(v.preview_url).play(); }} className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-secondary hover:text-primary"><Play className="h-3.5 w-3.5" /></span>}
+                  <span className="min-w-0"><span className="block truncate font-medium">{v.name}</span><span className="block truncate text-xs text-muted-foreground">{Object.values(v.labels ?? {}).join(" · ")}</span></span>
+                </button>
+              ))}
+            </div>
+          )}
+          <div className="mt-4 grid gap-3 md:grid-cols-[1fr_auto]">
+            <select className={field} value={vozModelo} onChange={(e) => setVozModelo(e.target.value)}>
+              <option value="eleven_multilingual_v2">Multilingual v2 — melhor qualidade</option>
+              <option value="eleven_turbo_v2_5">Turbo v2.5 — mais rápido e barato</option>
+              <option value="eleven_flash_v2_5">Flash v2.5 — o mais barato</option>
+              <option value="eleven_v3">Eleven v3 — mais expressivo</option>
+            </select>
+            <button onClick={salvarVoz} className="rounded-md bg-gradient-primary px-5 py-2 text-sm font-semibold text-primary-foreground">Salvar voz</button>
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">{voz ? `Voz selecionada: ${vozes.find((x) => x.voice_id === voz)?.name ?? "salva"}` : "Nenhuma voz salva."}</p>
         </section>
         <section className="rounded-lg border border-border bg-card p-5 lg:col-span-2">
           <h3 className="font-semibold">Servidor de renderização (FFmpeg / HyperFrames)</h3>

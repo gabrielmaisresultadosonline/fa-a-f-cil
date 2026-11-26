@@ -10,6 +10,7 @@ import { generateOverlay, runOverlayPipeline } from "@/lib/overlayPipeline";
 import { audioCtx, recordDest, scheduleSons } from "@/lib/sfx";
 import { download, recordRegion } from "@/lib/recorder";
 import { renderNoServidor, type Engine } from "@/lib/serverRender";
+import { enfileirar } from "@/lib/queue";
 
 export const Route = createFileRoute("/overlay/$id")({
   validateSearch: z.object({ iniciar: z.boolean().optional() }),
@@ -128,7 +129,9 @@ function OverlayEditor() {
         <option value="ffmpeg">FFmpeg (servidor)</option><option value="hyperframes">HyperFrames (servidor)</option><option value="navegador">Gravar no navegador</option>
       </select>
       <button onClick={renderizar} disabled={busy || rec || srv || !p.overlays.some((x) => x.html)} className="inline-flex items-center gap-2 rounded-md bg-gradient-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-40">
-        {rec || srv ? <Loader2 className="h-4 w-4 animate-spin" /> : <Circle className="h-3 w-3 fill-current" />}{rec ? "Gravando…" : srv ? "Renderizando…" : "Renderizar"}</button>
+        {rec || srv ? <Loader2 className="h-4 w-4 animate-spin" /> : <Circle className="h-3 w-3 fill-current" />}{rec ? "Gravando…" : srv ? "Renderizando…" : "Renderizar agora"}</button>
+      <button disabled={modo === "navegador" || busy || !p.overlays.some((x) => x.html)} onClick={async () => { if (modo === "navegador") return; await enfileirar({ modulo: "overlay", alvoId: p.id, nome: p.nome, engine: modo }); toast.success("Adicionado à fila de renderização"); }}
+        className="rounded-md border border-border px-3 py-2 text-sm hover:border-primary disabled:opacity-40">Adicionar à fila</button>
     </>}>
       <div className="grid gap-6 xl:grid-cols-[1fr_320px]">
         <section className="flex min-w-0 flex-col gap-3">

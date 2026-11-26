@@ -11,6 +11,8 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as CustosRouteImport } from './routes/custos'
+import { Route as FilaRouteImport } from './routes/fila'
 import { Route as NovoRouteImport } from './routes/novo'
 import { Route as OverlayIndexRouteImport } from './routes/overlay.index'
 import { Route as OverlayIdRouteImport } from './routes/overlay.$id'
@@ -26,6 +28,16 @@ const IndexRoute = IndexRouteImport.update({
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CustosRoute = CustosRouteImport.update({
+  id: '/custos',
+  path: '/custos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FilaRoute = FilaRouteImport.update({
+  id: '/fila',
+  path: '/fila',
   getParentRoute: () => rootRouteImport,
 } as any)
 const NovoRoute = NovoRouteImport.update({
@@ -62,6 +74,8 @@ const RenderizarIdRoute = RenderizarIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/custos': typeof CustosRoute
+  '/fila': typeof FilaRoute
   '/novo': typeof NovoRoute
   '/overlay/$id': typeof OverlayIdRoute
   '/projetos/$id': typeof ProjetosIdRoute
@@ -72,6 +86,8 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/custos': typeof CustosRoute
+  '/fila': typeof FilaRoute
   '/novo': typeof NovoRoute
   '/overlay/$id': typeof OverlayIdRoute
   '/projetos/$id': typeof ProjetosIdRoute
@@ -83,6 +99,8 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/custos': typeof CustosRoute
+  '/fila': typeof FilaRoute
   '/novo': typeof NovoRoute
   '/overlay/$id': typeof OverlayIdRoute
   '/projetos/$id': typeof ProjetosIdRoute
@@ -95,6 +113,8 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
+    | '/custos'
+    | '/fila'
     | '/novo'
     | '/overlay/$id'
     | '/projetos/$id'
@@ -105,6 +125,8 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/admin'
+    | '/custos'
+    | '/fila'
     | '/novo'
     | '/overlay/$id'
     | '/projetos/$id'
@@ -115,6 +137,8 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/admin'
+    | '/custos'
+    | '/fila'
     | '/novo'
     | '/overlay/$id'
     | '/projetos/$id'
@@ -126,6 +150,8 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
+  CustosRoute: typeof CustosRoute
+  FilaRoute: typeof FilaRoute
   NovoRoute: typeof NovoRoute
   OverlayIdRoute: typeof OverlayIdRoute
   ProjetosIdRoute: typeof ProjetosIdRoute
@@ -148,6 +174,20 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/custos': {
+      id: '/custos'
+      path: '/custos'
+      fullPath: '/custos'
+      preLoaderRoute: typeof CustosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/fila': {
+      id: '/fila'
+      path: '/fila'
+      fullPath: '/fila'
+      preLoaderRoute: typeof FilaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/novo': {
@@ -198,6 +238,8 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
+  CustosRoute: CustosRoute,
+  FilaRoute: FilaRoute,
   NovoRoute: NovoRoute,
   OverlayIdRoute: OverlayIdRoute,
   ProjetosIdRoute: ProjetosIdRoute,

@@ -140,7 +140,9 @@ http.createServer(async (req, res) => {
     const form = await new Request("http://x", { method: "POST", headers: req.headers, body: req, duplex: "half" }).formData();
     const m = JSON.parse(String(form.get("manifest")));
     m.fps = m.fps || FPS_PADRAO;
-    const video = join(dir, "input"); await writeFile(video, Buffer.from(await form.get("video").arrayBuffer()));
+    const video = join(dir, "input.mp4"); const vf = form.get("video");
+    if (vf && typeof vf !== "string") await writeFile(video, Buffer.from(await vf.arrayBuffer()));
+    else await run("ffmpeg", ["-y", "-f", "lavfi", "-i", `color=c=black:s=${m.largura}x${m.altura}:d=${m.duracao}:r=${m.fps || FPS_PADRAO}`, "-c:v", "libx264", "-pix_fmt", "yuv420p", video], dir); // Motion IA: sem vídeo de fundo
     let sfx = null; const s = form.get("sfx");
     if (s && typeof s !== "string") { sfx = join(dir, "sfx.wav"); await writeFile(sfx, Buffer.from(await s.arrayBuffer())); }
     browser ??= await puppeteer.launch({ headless: true, args: ["--no-sandbox", "--disable-setuid-sandbox"] });

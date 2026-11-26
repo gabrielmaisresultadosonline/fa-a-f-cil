@@ -18,11 +18,11 @@ const field = "w-full rounded-md border border-input bg-background px-3 py-2 tex
 
 function Novo() {
   const nav = useNavigate();
-  const [c, setC] = useState<ProjectConfig>({ nome: "", ideia: "", duracao: 20, largura: 1920, altura: 1080, estilo: "", paleta: "", publico: "", objetivo: "", idioma: "Português", velocidade: "Média", intensidade: "Alta", sons: true });
+  const [c, setC] = useState<ProjectConfig>({ nome: "", ideia: "", duracao: 20, largura: 1920, altura: 1080, estilo: "", paleta: "", publico: "", objetivo: "", idioma: "Português", velocidade: "Média", intensidade: "Alta", sons: true, voz: false });
   const up = (k: keyof ProjectConfig, v: string | number) => setC((x) => ({ ...x, [k]: v }));
   async function criar() {
     const p: Project = { id: crypto.randomUUID(), criadoEm: Date.now(), atualizadoEm: Date.now(), config: { ...c, nome: c.nome || c.ideia.slice(0, 40) }, cenas: [], log: [], status: "rascunho",
-      agentes: { diretor: "aguardando", roteirista: "aguardando", desenvolvedor: "aguardando", validador: "aguardando" } };
+      agentes: { diretor: "aguardando", roteirista: "aguardando", desenvolvedor: "aguardando", ...(c.voz ? { locutor: "aguardando" as const } : {}), validador: "aguardando" } };
     await saveProject(p);
     nav({ to: "/projetos/$id", params: { id: p.id }, search: { iniciar: true } });
   }
@@ -35,6 +35,7 @@ function Novo() {
             placeholder="Ex.: Crie um vídeo publicitário de 30 segundos apresentando uma ferramenta de automação para Instagram. Moderno, cinematográfico, fundo escuro, partículas e textos impactantes."
             className="mt-3 w-full resize-none rounded-lg border border-input bg-card/80 p-4 text-base outline-none focus:border-primary" />
           <label className="mt-4 flex items-center gap-2 text-sm"><input type="checkbox" checked={!!c.sons} onChange={(e) => setC((x) => ({ ...x, sons: e.target.checked }))} className="h-4 w-4 accent-primary" />Criar efeitos sonoros (a IA escolhe os melhores momentos)</label>
+          <label className="mt-2 flex items-center gap-2 text-sm"><input type="checkbox" checked={!!c.voz} onChange={(e) => setC((x) => ({ ...x, voz: e.target.checked }))} className="h-4 w-4 accent-primary" />Gerar áudio de voz (narração com a voz escolhida em Administração)</label>
           <p className="mt-2 text-xs text-muted-foreground">Só a ideia já basta: campos vazios são decididos pelo Diretor Criativo.</p>
           <button disabled={c.ideia.trim().length < 10} onClick={criar}
             className="mt-6 inline-flex items-center gap-2 rounded-md bg-gradient-primary px-6 py-3 font-semibold text-primary-foreground shadow-glow disabled:opacity-40">

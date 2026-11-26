@@ -1,7 +1,7 @@
 import { get, set, del, keys } from "idb-keyval";
 import type { Som } from "./sfx";
 
-export type AgentKey = "diretor" | "roteirista" | "desenvolvedor" | "validador";
+export type AgentKey = "diretor" | "roteirista" | "desenvolvedor" | "locutor" | "validador";
 export type AgentStatus = "aguardando" | "executando" | "concluido" | "erro";
 
 export interface Scene {
@@ -16,6 +16,8 @@ export interface Scene {
   transicaoSaida: string;
   movimentoCamera?: string;
   sons?: Som[];
+  narracao?: string;
+  audio?: Blob;
   html?: string;
 }
 
@@ -33,6 +35,7 @@ export interface ProjectConfig {
   velocidade: string;
   intensidade: string;
   sons?: boolean;
+  voz?: boolean;
 }
 
 export interface Project {
@@ -42,7 +45,7 @@ export interface Project {
   config: ProjectConfig;
   direcao?: string;
   cenas: Scene[];
-  agentes: Record<AgentKey, AgentStatus>;
+  agentes: Partial<Record<AgentKey, AgentStatus>>;
   log: { t: number; agente: string; msg: string }[];
   status: "rascunho" | "produzindo" | "pronto" | "erro";
 }
@@ -78,6 +81,7 @@ export const AGENTES: { key: AgentKey; nome: string; desc: string }[] = [
   { key: "diretor", nome: "Diretor Criativo", desc: "Conceito, cores, tipografia e estilo" },
   { key: "roteirista", nome: "Roteirista", desc: "Narrativa dividida em cenas" },
   { key: "desenvolvedor", nome: "Dev. de Motion", desc: "Código HTML/CSS/JS de cada cena" },
+  { key: "locutor", nome: "Locutor (voz)", desc: "Narração com voz ElevenLabs" },
   { key: "validador", nome: "Validador", desc: "Confere o código e as durações" },
 ];
 
