@@ -6,7 +6,7 @@ let rec: MediaStreamAudioDestinationNode | null = null;
 export function audioCtx() { if (!ctx) ctx = new AudioContext(); if (ctx.state === "suspended") void ctx.resume(); return ctx; }
 export function recordDest() { const c = audioCtx(); if (!rec) rec = c.createMediaStreamDestination(); return rec; }
 function out(c: AudioContext, vol: number) { const g = c.createGain(); g.gain.value = vol; g.connect(c.destination); if (rec) g.connect(rec); return g; }
-function noise(c: AudioContext, sec: number) {
+function noise(c: BaseAudioContext, sec: number) {
   const b = c.createBuffer(1, Math.ceil(c.sampleRate * sec), c.sampleRate); const d = b.getChannelData(0);
   for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
   const s = c.createBufferSource(); s.buffer = b; return s;
@@ -14,8 +14,7 @@ function noise(c: AudioContext, sec: number) {
 function env(g: GainNode, t: number, a: number, r: number, peak = 1) {
   g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + a); g.gain.exponentialRampToValueAtTime(0.0001, t + a + r);
 }
-export function playSfx(tipo: string, vol = 0.5) {
-  const c = audioCtx(); const o = out(c, vol); const t = c.currentTime;
+function synth(c: BaseAudioContext, o: AudioNode, tipo: string, t: number) {
   const osc = (type: OscillatorType, f0: number, f1: number, dur: number, peak = 1) => {
     const x = c.createOscillator(); const g = c.createGain(); x.type = type;
     x.frequency.setValueAtTime(f0, t); x.frequency.exponentialRampToValueAtTime(f1, t + dur);
@@ -36,6 +35,22 @@ export function playSfx(tipo: string, vol = 0.5) {
     case "glitch": for (let i = 0; i < 6; i++) { const x = c.createOscillator(); const g = c.createGain(); x.type = "square"; x.frequency.value = 80 + Math.random() * 900; const s = t + i * 0.04; g.gain.setValueAtTime(0.25, s); g.gain.setValueAtTime(0, s + 0.03); x.connect(g).connect(o); x.start(s); x.stop(s + 0.04); } break;
     default: osc("sine", 500, 300, 0.1);
   }
+}
+export function playSfx(tipo: string, vol = 0.5) { const c = audioCtx(); synth(c, out(c, vol), tipo, c.currentTime); }
+
+/** Gera a trilha de efeitos sonoros inteira como WAV (para renderização no servidor). */
+export async function renderSfxWav(eventos: { t: number; tipo: string }[], duracao: number, vol = 0.5) {
+  const rate = 48000; const c = new OfflineAudioContext(2, Math.ceil(duracao * rate), rate);
+  const g = c.createGain(); g.gain.value = vol; g.connect(c.destination);
+  for (const e of eventos) if (e.t < duracao) synth(c, g, e.tipo, Math.max(0, e.t));
+  const buf = await c.startRendering();
+  const L = buf.getChannelData(0), R = buf.getChannelData(1), n = L.length;
+  const ab = new ArrayBuffer(44 + n * 4); const v = new DataView(ab);
+  const w = (o: number, s: string) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+  w(0, "RIFF"); v.setUint32(4, 36 + n * 4, true); w(8, "WAVE"); w(12, "fmt "); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 2, true);
+  v.setUint32(24, rate, true); v.setUint32(28, rate * 4, true); v.setUint16(32, 4, true); v.setUint16(34, 16, true); w(36, "data"); v.setUint32(40, n * 4, true);
+  for (let i = 0; i < n; i++) { v.setInt16(44 + i * 4, Math.max(-1, Math.min(1, L[i]!)) * 0x7fff, true); v.setInt16(46 + i * 4, Math.max(-1, Math.min(1, R[i]!)) * 0x7fff, true); }
+  return new Blob([ab], { type: "audio/wav" });
 }
 export function scheduleSons(sons: Som[] | undefined, enabled: boolean, offset = 0) {
   if (!enabled || !sons?.length) return () => {};

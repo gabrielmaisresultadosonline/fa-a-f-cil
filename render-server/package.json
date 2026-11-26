@@ -1,0 +1,10 @@
+{
+  "name": "motionmro-render-server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Servidor de renderização do MotionMRO (FFmpeg ou HyperFrames). Rode em localhost ou numa VPS.",
+  "engines": { "node": ">=22" },
+  "scripts": { "start": "node server.mjs" },
+  "dependencies": { "puppeteer": "^23.0.0" }
+}

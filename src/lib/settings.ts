@@ -1,5 +1,5 @@
 const K = "motionmro:openai";
-export interface Creds { token?: string; modelo?: string }
+export interface Creds { token?: string; modelo?: string; servidor?: string }
 export function getCreds(): Creds {
   if (typeof window === "undefined") return {};
   try { return JSON.parse(localStorage.getItem(K) || "{}") as Creds; } catch { return {}; }
@@ -17,3 +17,4 @@ export const MODELOS: { id: string; nome: string }[] = [
   { id: "gpt-5", nome: "GPT-5" },
   { id: "gpt-6.1-terra", nome: "GPT-6.1 Terra — topo de linha" },
 ];
+export const SERVIDOR_PADRAO = "http://localhost:4400";
