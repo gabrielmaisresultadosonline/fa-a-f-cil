@@ -49,6 +49,13 @@ fi
 
 echo '== 4/6 Ambiente Python (yt-dlp + UVR) =='
 VENV=$USER_HOME/.local/share/motionmro/audio-env
+# UVR voice removal needs memory headroom; small VPSs ship without swap and the kernel kills it.
+if ! swapon --noheadings --show | grep -q . && [[ ! -e /swapfile ]]; then
+  echo "Criando 4 GB de memória extra (swap) para a remoção de voz..."
+  (fallocate -l 4G /swapfile || dd if=/dev/zero of=/swapfile bs=1M count=4096) && chmod 600 /swapfile && mkswap /swapfile >/dev/null && swapon /swapfile \
+    && { grep -q '^/swapfile ' /etc/fstab || echo '/swapfile none swap sw 0 0' >> /etc/fstab; } \
+    || echo "Aviso: não foi possível criar a swap; músicas longas podem falhar ao remover a voz."
+fi
 if [[ ! -x $VENV/bin/audio-separator ]]; then
   runuser -u "$USER_NAME" -- python3 -m venv "$VENV"
   runuser -u "$USER_NAME" -- "$VENV/bin/pip" install --no-cache-dir --quiet 'yt-dlp[default]' 'audio-separator[cpu]>=0.48,<1' audioread

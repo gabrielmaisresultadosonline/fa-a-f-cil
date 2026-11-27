@@ -28,6 +28,13 @@ cp "$ROOT"/render-server/*.mjs "$ROOT/render-server/package.json" "$ROOT/render-
 chown -R motionmro:motionmro /opt/motionmro/render-server
 runuser -u motionmro -- env HOME=/opt/motionmro PUPPETEER_CACHE_DIR=/opt/motionmro/.cache bash -c 'cd /opt/motionmro/render-server && npm ci --omit=dev && npx --yes hyperframes@0.9.100 --help >/dev/null'
 python3 -m venv /opt/motionmro/audio-env
+# UVR voice removal needs memory headroom; small VPSs ship without swap and the kernel kills it.
+if ! swapon --noheadings --show | grep -q . && [[ ! -e /swapfile ]]; then
+  echo "Criando 4 GB de memória extra (swap) para a remoção de voz..."
+  (fallocate -l 4G /swapfile || dd if=/dev/zero of=/swapfile bs=1M count=4096) && chmod 600 /swapfile && mkswap /swapfile >/dev/null && swapon /swapfile \
+    && { grep -q '^/swapfile ' /etc/fstab || echo '/swapfile none swap sw 0 0' >> /etc/fstab; } \
+    || echo "Aviso: não foi possível criar a swap; músicas longas podem falhar ao remover a voz."
+fi
 /opt/motionmro/audio-env/bin/pip install --no-cache-dir 'yt-dlp[default]' 'audio-separator[cpu]>=0.48,<1'
 chown -R motionmro:motionmro /opt/motionmro/audio-env /opt/motionmro/.cache
 bash "$ROOT/deploy/update-youtube.sh" motionmro /opt/motionmro/audio-env
