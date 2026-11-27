@@ -1,4 +1,10 @@
 # Roadmap MotionMRO
+## Ambiente independente local
+- [x] Preparar instalação isolada de PostgreSQL, autenticação e arquivos privados em localhost
+- [x] Criar inicialização do app e renderização com credenciais locais, sem alterar o ambiente Cloud
+- [x] Validar sintaxe dos instaladores, seis testes de credenciais e esquema/regras em PostgreSQL 17 descartável
+- [ ] Executar instalação completa e login pela UI local — depende de Docker e da máquina do usuário; não disponível neste sandbox
+
 ## Renovação visual pública
 - [x] Refinar vendas, cadastro e login com composição tecnológica e luzes, sem alterar acesso ou regras
 - [x] Verificar navegação, formulários e apresentação em celular, tablet e computador

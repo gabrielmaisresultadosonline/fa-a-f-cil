@@ -29,7 +29,7 @@ use the editor.
 - **Secrets.** Lovable manages them. Do not put secret values in the repo.
 <!-- LOVABLE:END -->
 
-- MotionMRO SaaS stores owner-scoped project JSON and private blobs in Lovable Cloud through cloudRepository; never merge legacy unowned IndexedDB data into an arbitrary signed-in customer, to prevent cross-account leaks.
+- MotionMRO SaaS stores owner-scoped project JSON and private blobs through cloudRepository on the selected backend; Cloud remains the preview default, while deploy/local.mjs selects an isolated local PostgreSQL/Auth/Storage stack without changing generated clients or copying unowned data.
 
 - MotionMRO AI uses the studio's own OpenAI account through authenticated server functions; admin-saved tokens are AES-GCM encrypted in a service-only table and never returned to clients, so customer accounts cannot expose provider credentials.
 - Video export: final MP4 renders run on a user-hosted render server (render-server/, Node + Puppeteer frame-seeking + FFmpeg or HyperFrames) because the app's Worker can't run ffmpeg; the in-tab recorder (src/lib/recorder.ts) is the fallback. Overlay HTML must expose a GSAP timeline on window.__tl for deterministic seeking; sound effects are WebAudio-synthesized (src/lib/sfx.ts) and rendered to WAV for the server.
@@ -45,3 +45,4 @@ use the editor.
 - Build Motion generation briefs through the shared projectBrief helper, excluding organizational names, and append shared creation constraints to every agent's system prompt so metadata stays outside rendered content.
 - Apply sceneLayout's idempotent canvas guard to preview, HTML export and server uploads; validate new Motion/Overlay HTML in a sandboxed iframe and allow one logged same-model repair before rejecting it so layout quality is not assumed from model price.
 - Scope public-page lighting and motion styles under public-experience; share MotionShowcase for the animated composition so studio styling and account operations remain unchanged.
+- Local development tooling must reject remote backend URLs, pass service credentials only to server processes, preserve the local encryption key and keep schema snapshots in deploy/local; development stacks are not VPS production deployments.

@@ -1,0 +1,38 @@
+# Development only. Independent from the managed Cloud configuration.
+project_id = "motionmro-local"
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 17
+[db.seed]
+enabled = false
+[studio]
+enabled = false
+[inbucket]
+enabled = true
+port = 54324
+[storage]
+enabled = true
+file_size_limit = "512MiB"
+[auth]
+enabled = true
+site_url = "http://localhost:8080"
+additional_redirect_urls = ["http://localhost:8080/auth", "http://localhost:8080/reset-password", "http://127.0.0.1:8080/auth", "http://127.0.0.1:8080/reset-password"]
+jwt_expiry = 3600
+enable_signup = true
+enable_anonymous_sign_ins = false
+minimum_password_length = 8
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+enable_confirmations = true
+[edge_runtime]
+enabled = false
+[analytics]
+enabled = false

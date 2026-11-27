@@ -1,5 +1,11 @@
 # Instalação MotionMRO — Ubuntu 24.04
 
+## Primeiro teste com banco local
+
+Para PostgreSQL, login e arquivos independentes na sua máquina, siga [LOCALHOST.md](LOCALHOST.md). Execute `bash deploy/local.sh install` e depois `bash deploy/local.sh app`. Esse ambiente é novo, separado do Cloud e somente para desenvolvimento; não é uma instalação de produção na VPS.
+
+## Instalador anterior: somente servidor de vídeos
+
 Na pasta do projeto completo exportado:
 
 ```bash
