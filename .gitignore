@@ -30,3 +30,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Sessões privadas: nunca versionar cookies nem o armazenamento criptografado
+cookies.txt
+*.cookies.txt
+.youtube-private/
