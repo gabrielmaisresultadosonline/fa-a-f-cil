@@ -1,4 +1,10 @@
 # Roadmap MotionMRO
+## Instalação VPS em comando único
+- [ ] Corrigir acesso público ao login, banco e arquivos usando o IP da VPS e Nginx
+- [ ] Executar build de produção e manter app, backend e renderização ativos com systemd
+- [ ] Entregar uma linha de instalação/atualização, administrador seguro e documentação para motionmro.com.br depois
+- [ ] Validar scripts e testes; instalação real depende de acesso a uma VPS Ubuntu 24.04
+
 ## Impacto do Overlay
 - [x] Centralizar novas composições e regenerações, alternando escurecimento e fundo sólido de tela inteira
 - [x] Reforçar transições de texto e fundo sem alterar áudio, câmera, editor ou exportação
