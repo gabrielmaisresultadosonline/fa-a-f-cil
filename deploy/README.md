@@ -59,3 +59,10 @@ Nesta etapa o app usa somente o IP e HTTP. Quando `motionmro.com.br` estiver apo
 - [LOCALHOST.md](LOCALHOST.md): ambiente separado para desenvolvimento local, com confirmação por caixa postal de testes.
 - `install-ubuntu.sh`: instalador anterior **somente do servidor de vídeos**, ainda ligado ao backend Cloud; não use para a VPS independente.
 - `install-vps-ubuntu.sh`: versão anterior para execução a partir de uma pasta já clonada; o comando único acima é o recomendado.
+
+## Redefinir acesso do administrador
+
+```bash
+sudo bash /home/motionmro/app/deploy/reset-admin.sh
+```
+Pede e-mail e nova senha; cria a conta se não existir, confirma o e-mail e dá permissão de administrador.
