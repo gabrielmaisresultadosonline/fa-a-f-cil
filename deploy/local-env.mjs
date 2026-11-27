@@ -1,4 +1,6 @@
 // Host-only tooling. Never import into the application or a browser bundle.
+import { normalizePublicOrigin } from './auth-config.mjs';
+
 export function localCredentials(status) {
   const url = status.API_URL;
   const publishable = status.ANON_KEY || status.PUBLISHABLE_KEY;
@@ -13,10 +15,11 @@ export function localCredentials(status) {
 export function localEnvironment(status, privateKey, base = {}) {
   if (!privateKey) throw new Error('A chave de proteção local não está configurada.');
   const { url, publishable, service } = localCredentials(status);
+  const publicUrl = base.MRO_PUBLIC_AUTH_URL ? normalizePublicOrigin(base.MRO_PUBLIC_AUTH_URL) : url;
   const clean = Object.fromEntries(Object.entries(base).filter(([key]) => !key.startsWith('SUPABASE_') && !key.startsWith('VITE_SUPABASE_') && !['DATABASE_URL', 'MRO_PRIVATE_SETTINGS_KEY', 'AUTH_URL', 'AUTH_PUBLISHABLE_KEY', 'APP_ORIGIN', 'CORS_ORIGINS'].includes(key)));
   return {
     ...clean,
-    VITE_SUPABASE_URL: url,
+    VITE_SUPABASE_URL: publicUrl,
     VITE_SUPABASE_PUBLISHABLE_KEY: publishable,
     VITE_SUPABASE_ANON_KEY: publishable,
     VITE_SUPABASE_PROJECT_ID: 'motionmro-local',

@@ -33,6 +33,22 @@ test('rendering uses the same local authentication with localhost origins', () =
   assert.equal(env.APP_ORIGIN, 'http://localhost:8080');
   assert.equal(env.CORS_ORIGINS, 'http://localhost:8080,http://127.0.0.1:8080');
 });
+test('VPS browser uses the public origin while privileged server work stays local', () => {
+  const env = localEnvironment(status, 'local-encryption-fixture', {
+    MRO_PUBLIC_AUTH_URL: 'http://203.0.113.10', APP_ORIGIN: 'http://203.0.113.10',
+  });
+  assert.equal(env.VITE_SUPABASE_URL, 'http://203.0.113.10');
+  assert.equal(env.SUPABASE_URL, 'http://127.0.0.1:54321');
+  assert.equal(env.AUTH_URL, 'http://127.0.0.1:54321');
+  assert.equal(env.SUPABASE_SERVICE_ROLE_KEY, 'local-service-fixture');
+  assert.equal(env.APP_ORIGIN, 'http://203.0.113.10');
+  assert.match(env.CORS_ORIGINS, /^http:\/\/203\.0\.113\.10/);
+});
+test('VPS public origin cannot contain credentials or a path', () => {
+  for (const MRO_PUBLIC_AUTH_URL of ['http://user:password@example.com', 'https://example.com/private']) {
+    assert.throws(() => localEnvironment(status, 'local-encryption-fixture', { MRO_PUBLIC_AUTH_URL }));
+  }
+});
 test('incomplete local setup fails explicitly, without substituting a Cloud key', () => {
   assert.throws(() => localCredentials({ API_URL: status.API_URL, ANON_KEY: status.ANON_KEY }));
   assert.throws(() => localEnvironment(status, ''));

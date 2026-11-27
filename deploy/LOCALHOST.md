@@ -89,7 +89,7 @@ O teste cria contas temporárias e confere projetos privados, teste de 90 segund
 
 Esta configuração é **somente para desenvolvimento local**. Os serviços de desenvolvimento podem publicar portas Docker em outras interfaces: bloqueie acesso externo pelo firewall e não rode esse instalador em uma VPS exposta. As credenciais de desenvolvimento não são segredos adequados para produção.
 
-Para a VPS, preparar uma instalação de produção: domínio HTTPS, credenciais novas, rede privada, e-mail real, backups, persistência de arquivos e aplicativo executando continuamente. O banco continua sendo PostgreSQL, com serviços próprios de login e armazenamento; trocar somente o endereço do banco não substitui esses serviços.
+Para uma VPS Ubuntu 24.04, use o comando único em [README.md](README.md). Ele cria uma instalação separada, executa o build de produção e configura Nginx, PostgreSQL, autenticação, arquivos, renderização, firewall e serviços permanentes. O domínio HTTPS e os e-mails reais ficam para a etapa seguinte; trocar somente o endereço do banco não substitui esses serviços.
 
 Nenhuma conta, projeto, arquivo, compra ou token atual do Lovable Cloud é importado automaticamente. Uma eventual migração de dados exige exportação e restauração separadas, preservando a propriedade de cada conta.
 
@@ -97,4 +97,4 @@ Nenhuma conta, projeto, arquivo, compra ou token atual do Lovable Cloud é impor
 
 A configuração e os comandos oficiais foram conferidos; seis testes de isolamento das credenciais passaram. O esquema foi aplicado em PostgreSQL 17 real numa base descartável, com verificação do cadastro, teste de 90 segundos, reserva/reembolso idempotentes e isolamento de projetos. Os serviços de login e arquivos usados nesse teste de esquema foram representados por estruturas mínimas; isso não substitui testar o login pelo navegador no ambiente Docker completo.
 
-O ambiente Docker completo ainda precisa ser executado na máquina local: este sandbox não tem Docker. A instalação de produção na VPS não está concluída por este iniciador.
+O ambiente Docker completo ainda precisa ser executado na máquina local: este sandbox não tem Docker. A instalação de produção na VPS usa `deploy/vps-install.sh` e também precisa ser validada em uma máquina Ubuntu 24.04 real.

@@ -1,30 +1,61 @@
-# Instalação MotionMRO — Ubuntu 24.04
+# Instalação MotionMRO — Ubuntu 24.04 LTS
 
-## Primeiro teste com banco local
+## Comando único para a VPS
 
-Para PostgreSQL, login e arquivos independentes na sua máquina, siga [LOCALHOST.md](LOCALHOST.md). Execute `bash deploy/local.sh install` e depois `bash deploy/local.sh app`. Esse ambiente é novo, separado do Cloud e somente para desenvolvimento; não é uma instalação de produção na VPS.
-
-## Instalador anterior: somente servidor de vídeos
-
-Na pasta do projeto completo exportado:
+Em uma VPS Ubuntu **24.04 LTS**, com acesso root/sudo e IP público, execute esta única linha:
 
 ```bash
-sudo bash deploy/install-ubuntu.sh
+curl -fsSL https://raw.githubusercontent.com/gabrielmaisresultadosonline/fa-a-f-cil/main/deploy/vps-install.sh -o /tmp/motionmro-install.sh && sudo bash /tmp/motionmro-install.sh
 ```
 
-O instalador configura Node 22, Chromium/Puppeteer, FFmpeg, HyperFrames, yt-dlp, audio-separator/UVR e um serviço que retoma os trabalhos após reiniciar. O processo de vídeo roda como usuário sem privilégios. O servidor fica restrito a localhost. O aplicativo, autenticação e armazenamento privado continuam no Lovable Cloud.
+O instalador detecta o IP, baixa o código público do GitHub e instala o aplicativo, PostgreSQL, autenticação, arquivos privados, Nginx, FFmpeg, HyperFrames, yt-dlp, UVR e a fila de renderização. Ele cria serviços permanentes que voltam após uma reinicialização.
 
-Informe a origem real do aplicativo quando solicitado. Para o primeiro teste local: `http://localhost:8080`. A origem controla os navegadores autorizados e os retornos das verificações de pagamento. Os parâmetros públicos de autenticação são lidos do `.env` exportado quando disponível. Nenhuma senha administrativa ou chave privada é incluída no instalador.
+No final, informe o e-mail e uma senha de pelo menos oito caracteres para o administrador. A senha não fica no código nem aparece na lista de processos. O servidor de renderização é configurado automaticamente.
 
-MP4s e arquivos de renderização são excluídos dois dias após a conclusão. Projetos permanecem no armazenamento privado do cliente. O acompanhamento de pedidos fica em disco por até dez minutos e não mantém a sessão do comprador; cada consulta exige uma autorização exclusiva daquele pedido. Sem os identificadores retornados pela InfinitePay, somente o webhook pode confirmar o pagamento.
+### Acesso após instalar
 
-## Para publicar o servidor de vídeos
+- Aplicativo: `http://IP-DA-VPS`
+- Administração: `http://IP-DA-VPS/admin`
+- Renderização: `http://IP-DA-VPS:4400` — já salvo nas configurações.
+- Cadastros nesta fase: sem confirmação de e-mail, conforme a etapa de testes pelo IP.
+- OpenAI: entre no admin e salve o token do estúdio antes de gerar vídeos.
 
-Use um domínio HTTPS, encaminhe o tráfego para `127.0.0.1:4400`, ajuste `APP_ORIGIN` e `CORS_ORIGINS` em `/etc/motionmro/render.env`, reinicie o serviço e salve o domínio na Administração. Não abra a porta 4400 diretamente à internet. O aplicativo precisa estar publicado para que a InfinitePay consiga enviar o webhook.
+O firewall libera somente SSH, a porta 80 do aplicativo e a porta 4400 da renderização. PostgreSQL, autenticação interna, armazenamento, aplicação Node e a fila interna ficam em portas locais. Uma regra específica na cadeia `DOCKER-USER` bloqueia também as portas Docker 54320–54329, que poderiam ignorar o UFW. O navegador acessa login e arquivos pelo mesmo endereço do app por meio do Nginx.
 
-## Limitações verificadas
+### Requisitos recomendados
 
-- O instalador foi validado sintaticamente, não executado em uma VPS Ubuntu real nesta sessão.
-- Hospedar toda a aplicação e seu backend de forma independente não está coberto por este instalador: requer uma migração própria do armazenamento, autenticação e segredos.
-- Modelos UVR e download de músicas dependem dos recursos da máquina e das restrições do YouTube.
-- Os valores e o modelo OpenAI configurados pelo administrador devem existir na conta do fornecedor.
+- Ubuntu 24.04 LTS novo ou já existente, arquitetura AMD64 ou ARM64.
+- 4 GB ou mais de RAM, 2 vCPUs e espaço em disco para vídeos e modelos de áudio.
+- Porta SSH disponível e liberação do provedor para as portas 80 e 4400.
+
+A separação de voz pode exigir mais memória. O primeiro download das imagens e modelos demora mais; execuções seguintes preservam banco, projetos, chaves e arquivos.
+
+## Atualizar ou reparar
+
+Execute novamente a mesma linha. O código é atualizado com `git pull --ff-only`, as migrações pendentes são aplicadas e os serviços são verificados. Não apague `/home/motionmro/.local/share/motionmro`: essa pasta contém a configuração, a chave de proteção e os arquivos locais.
+
+Logs:
+
+```bash
+sudo journalctl -u motionmro-app -f
+sudo journalctl -u motionmro-render -f
+sudo journalctl -u motionmro-db -f
+```
+
+## Domínio posterior: motionmro.com.br
+
+Nesta etapa o app usa somente o IP e HTTP. Quando `motionmro.com.br` estiver apontando para a VPS, configuraremos o domínio e HTTPS, atualizaremos os retornos de autenticação e só então validaremos compras reais pela InfinitePay. Não altere DNS nem habilite vendas antes dessa etapa.
+
+## Limitações desta verificação
+
+- Os scripts e regras são testados no projeto; a execução completa ainda precisa ser conferida em uma VPS Ubuntu 24.04 real.
+- Geração OpenAI depende do token e dos modelos disponíveis na conta do estúdio.
+- Pagamentos reais ficam desligados até HTTPS, domínio e uma compra autorizada de validação.
+- Recuperação de senha por e-mail real exigirá SMTP na etapa seguinte; cadastro e login sem confirmação funcionam sem SMTP.
+- YouTube pode bloquear downloads automatizados, e modelos UVR são baixados na primeira utilização.
+
+## Outros instaladores
+
+- [LOCALHOST.md](LOCALHOST.md): ambiente separado para desenvolvimento local, com confirmação por caixa postal de testes.
+- `install-ubuntu.sh`: instalador anterior **somente do servidor de vídeos**, ainda ligado ao backend Cloud; não use para a VPS independente.
+- `install-vps-ubuntu.sh`: versão anterior para execução a partir de uma pasta já clonada; o comando único acima é o recomendado.

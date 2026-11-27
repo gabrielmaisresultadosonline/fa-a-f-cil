@@ -1,13 +1,23 @@
 // Cria/confirma a conta admin local. Uso: node deploy/create-admin.mjs email [senha]
-// A senha também pode vir de MRO_ADMIN_PASSWORD (evita exposição na lista de processos).
+// A senha pode vir de MRO_ADMIN_PASSWORD ou stdin, evitando exposição na lista de processos.
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 import { localCredentials } from './local-env.mjs';
 
-const [email, passwordArg] = process.argv.slice(2);
-const password = process.env.MRO_ADMIN_PASSWORD || passwordArg;
-if (!email || !password) { console.error('Uso: node deploy/create-admin.mjs email senha'); process.exit(1); }
+const [emailArg, passwordArg] = process.argv.slice(2);
+const email = emailArg?.trim().toLowerCase();
+async function passwordFromStdin() {
+  if (process.stdin.isTTY) return '';
+  let input = '';
+  for await (const chunk of process.stdin) input += chunk;
+  return input.split('\n')[0].replace(/\r$/, '');
+}
+const password = process.env.MRO_ADMIN_PASSWORD || passwordArg || await passwordFromStdin();
+if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !password) {
+  console.error('Uso: node deploy/create-admin.mjs email senha'); process.exit(1);
+}
+if (password.length < 8) { console.error('A senha deve ter pelo menos 8 caracteres.'); process.exit(1); }
 
 const workdir = join(homedir(), '.local', 'share', 'motionmro', 'backend');
 const supabaseBin = process.env.SUPABASE_CLI || (process.platform === 'win32' ? 'C:\\Users\\MRO\\tools\\supabase.exe' : 'supabase');
@@ -39,4 +49,14 @@ if (existing) {
   user = created.json;
   console.log('Conta criada e confirmada.');
 }
-console.log('user id:', user.id);
+if (!user?.id) { console.error('O serviço de autenticação não retornou a conta criada.'); process.exit(1); }
+
+if (process.env.MRO_RENDER_URL) {
+  const renderUrl = new URL(process.env.MRO_RENDER_URL);
+  if (!['http:', 'https:'].includes(renderUrl.protocol) || renderUrl.pathname !== '/' || renderUrl.username || renderUrl.password) {
+    console.error('Endereço de renderização inválido.'); process.exit(1);
+  }
+  const settings = await api('/rest/v1/app_settings?id=eq.true', 'PATCH', { render_url: renderUrl.origin });
+  if (!settings.ok) { console.error('Conta criada, mas falha ao configurar a renderização:', settings.status); process.exit(1); }
+  console.log('Servidor de renderização configurado automaticamente.');
+}
