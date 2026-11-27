@@ -5,6 +5,7 @@
 - [x] Entregar uma linha de instalação/atualização, administrador seguro e documentação para motionmro.com.br depois
 - [x] Validar sintaxe, regras de firewall e separação das credenciais com testes automatizados
 - [ ] Concluir a instalação na VPS Ubuntu 26.04.1 do usuário — disco total informado: 50 GB; UVR parou por espaço, então caches foram removidos e temporários direcionados ao disco do app; aguardando nova execução
+- [x] Criar update-vps.sh: um comando que baixa o código novo, mostra o que mudou, aplica migrações novas, refaz o build e reinicia app e render; 6 testes passaram
 
 ## Impacto do Overlay
 - [x] Centralizar novas composições e regenerações, alternando escurecimento e fundo sólido de tela inteira

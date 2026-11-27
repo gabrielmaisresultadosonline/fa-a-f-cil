@@ -32,7 +32,15 @@ A separação de voz pode exigir mais memória. O primeiro download das imagens 
 
 ## Atualizar ou reparar
 
-Execute novamente a mesma linha. O código é atualizado com `git pull --ff-only`, as migrações pendentes são aplicadas e os serviços são verificados. Não apague `/home/motionmro/.local/share/motionmro`: essa pasta contém a configuração, a chave de proteção e os arquivos locais.
+Depois de instalado, atualize a VPS com o código mais novo do GitHub em um único comando:
+
+```bash
+sudo bash /home/motionmro/app/deploy/update-vps.sh
+```
+
+Ele baixa a versão mais nova, mostra os arquivos que mudaram, instala dependências, aplica migrações novas do banco, refaz o build de produção, reinicia o aplicativo e a fila de renderização e confere se os dois responderam. Bancos, projetos, chaves e arquivos de clientes não são tocados.
+
+Para reparar a instalação inteira, execute novamente a linha de instalação. Não apague `/home/motionmro/.local/share/motionmro`: essa pasta contém a configuração, a chave de proteção e os arquivos locais.
 
 Logs:
 

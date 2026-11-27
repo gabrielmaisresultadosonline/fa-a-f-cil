@@ -14,6 +14,12 @@ O instalador configura o IP público, aplicativo em produção, PostgreSQL, logi
 
 Abra `http://IP-DA-VPS` e entre em `/admin`. O endereço de renderização já é configurado; salve o token OpenAI antes de gerar vídeos. Nesta fase de testes, cadastros não exigem confirmação de e-mail e compras reais permanecem desligadas.
 
+Depois de instalado, atualize a VPS com o código mais novo do GitHub em um comando:
+
+```bash
+sudo bash /home/motionmro/app/deploy/update-vps.sh
+```
+
 Consulte [deploy/README.md](deploy/README.md) para requisitos, atualização, logs, limitações e a futura configuração de `motionmro.com.br` com HTTPS.
 
 ## Desenvolvimento local
