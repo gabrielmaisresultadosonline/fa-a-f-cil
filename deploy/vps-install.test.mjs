@@ -44,3 +44,9 @@ test('VPS browser and render receive the detected public IP', () => {
   assert.match(script, /MRO_RENDER_URL=\$RENDER_ORIGIN/);
   assert.match(script, /APP_ORIGIN=http:\/\/\$PUBLIC_HOST/);
 });
+
+test('VPS installs voice removal on Python 3.12 and keeps going if it fails', () => {
+  assert.match(script, /venv --seed --python 3\.12/);
+  assert.match(script, /build-essential python3-dev/);
+  assert.match(script, /if ! runuser .*audio-separator/);
+});

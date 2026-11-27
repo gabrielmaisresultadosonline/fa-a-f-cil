@@ -19,7 +19,7 @@ VENV=$STATE/audio-env
 echo '== 1/8 Pacotes do sistema =='
 export DEBIAN_FRONTEND=noninteractive
 apt-get update
-apt-get install -y ca-certificates curl unzip git docker.io nginx ffmpeg python3 python3-venv ufw iptables \
+apt-get install -y ca-certificates curl unzip git docker.io nginx ffmpeg python3 python3-venv build-essential python3-dev ufw iptables \
   libnss3 libatk-bridge2.0-0 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxrandr2 libgbm1 libasound2t64 fonts-liberation
 systemctl enable --now docker
 
@@ -67,9 +67,22 @@ if [[ ! -x $SUPABASE_BIN ]]; then
 fi
 install -d -o $APP_USER -g $APP_USER -m 700 $STATE $STATE/uvr-models $STATE/puppeteer $STATE/tmp
 export TMPDIR=$STATE/tmp
-if [[ ! -x $VENV/bin/audio-separator ]]; then
-  runuser -u $APP_USER -- python3 -m venv $VENV
-  runuser -u $APP_USER -- env TMPDIR=$STATE/tmp $VENV/bin/pip install --no-cache-dir --quiet 'yt-dlp' 'audio-separator[cpu]>=0.48,<1' audioread
+# O UVR exige Python 3.12: versões novas do Ubuntu (ex.: 26.04 com Python 3.14) não têm pacotes prontos.
+UV_BIN=$APP_HOME/.local/bin/uv
+if [[ ! -x $UV_BIN ]]; then
+  install -d -o $APP_USER -g $APP_USER $APP_HOME/.local/bin
+  runuser -u $APP_USER -- env UV_INSTALL_DIR=$APP_HOME/.local/bin UV_NO_MODIFY_PATH=1 bash -c 'curl -LsSf https://astral.sh/uv/install.sh | sh'
+fi
+UV_ENV="UV_PYTHON_INSTALL_DIR=$STATE/python UV_CACHE_DIR=$STATE/tmp/uv-cache TMPDIR=$STATE/tmp"
+if [[ ! -x $VENV/bin/yt-dlp || ! -x $VENV/bin/audio-separator ]] || ! $VENV/bin/python -c 'import sys; sys.exit(sys.version_info[:2] != (3, 12))' 2>/dev/null; then
+  rm -rf $VENV
+  runuser -u $APP_USER -- env $UV_ENV $UV_BIN venv --seed --python 3.12 $VENV
+  runuser -u $APP_USER -- env $UV_ENV $VENV/bin/pip install --no-cache-dir --quiet 'yt-dlp' audioread
+  if ! runuser -u $APP_USER -- env $UV_ENV $VENV/bin/pip install --no-cache-dir --quiet 'audio-separator[cpu]>=0.48,<1'; then
+    echo 'Aviso: a remoção de voz (UVR) não pôde ser instalada agora; todo o restante continua funcionando.'
+    echo 'Execute o mesmo comando depois para tentar instalar novamente.'
+  fi
+  rm -rf $STATE/tmp/uv-cache
 fi
 
 echo '== 5/8 Dependências do app, FFmpeg/HyperFrames e navegador de renderização =='
