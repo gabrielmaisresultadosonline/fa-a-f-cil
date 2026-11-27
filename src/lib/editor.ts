@@ -24,6 +24,8 @@ export interface EditorClip {
   mediaId?: string;
   servidor?: string;
   stem?: AudioStem;
+  /** Source range (seconds) that has vocals removed in the instrumental stem. */
+  faixaSemVoz?: { inicio: number; fim: number };
 }
 
 export interface EditorTrack {
@@ -167,6 +169,22 @@ export function trimClipTo(project: EditorProject, id: string, edge: "inicio" | 
     const end = clamp(time, c.inicio + 0.1, Math.min(project.duracao, c.inicio - c.offset + c.sourceDuration));
     return { ...c, duracao: end - c.inicio };
   });
+}
+
+/** Choose which part of the source plays (offset) and for how long, kept inside the video. */
+export function setClipWindow(project: EditorProject, id: string, offset: number, duracao: number): EditorProject {
+  return replaceClip(project, id, (c) => {
+    const nextOffset = clamp(offset, 0, Math.max(0, c.sourceDuration - 0.1));
+    const maxLen = Math.min(c.sourceDuration - nextOffset, project.duracao - c.inicio);
+    return { ...c, offset: nextOffset, duracao: clamp(duracao, Math.min(0.1, maxLen), Math.max(0.1, maxLen)) };
+  });
+}
+
+/** True when the clip's current window lies inside the range whose vocals were removed. */
+export function vocalsRemovedFor(clip: EditorClip) {
+  if (clip.stem !== "instrumental") return false;
+  if (!clip.faixaSemVoz) return true;
+  return clip.faixaSemVoz.inicio <= clip.offset + 0.05 && clip.faixaSemVoz.fim >= clip.offset + clip.duracao - 0.05;
 }
 
 export function splitClip(project: EditorProject, id: string, time: number): EditorProject {

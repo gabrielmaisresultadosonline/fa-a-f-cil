@@ -125,10 +125,28 @@ export async function importLocalAudio(root, bytes, name) {
   }
 }
 
-export async function separateVocals(root, id, onProgress = () => {}) {
+/** Range (seconds of the source) limits UVR to the part the user kept, so trimmed songs separate faster. */
+export function separationRange(info, range) {
+  const total = Number(info.duracao) || 0;
+  const inicio = Math.max(0, Math.min(total, Number(range?.inicio) || 0));
+  const fimRaw = Number(range?.fim);
+  const fim = Math.max(inicio, Math.min(total, Number.isFinite(fimRaw) && fimRaw > 0 ? fimRaw : total));
+  return fim - inicio < 0.1 ? { inicio: 0, fim: total } : { inicio, fim };
+}
+
+export function rangeCovered(saved, wanted) {
+  if (!saved) return true; // legacy separations covered the whole song
+  return saved.inicio <= wanted.inicio + 0.05 && saved.fim >= wanted.fim - 0.05;
+}
+
+export async function separateVocals(root, id, onProgress = () => {}, range) {
   const dir = mediaDirectory(root, id), info = await mediaInfo(root, id);
   const instrumental = join(dir, "instrumental.wav");
-  if (await stat(instrumental).then(() => true, () => false)) return { ...info, instrumentalDisponivel: true };
+  const wanted = separationRange(info, range);
+  if (await stat(instrumental).then(() => true, () => false)) {
+    if (info.instrumentalDisponivel !== false && rangeCovered(info.faixaSemVoz, wanted)) return { ...info, instrumentalDisponivel: true };
+    await rm(instrumental, { force: true });
+  }
   const command = process.env.AUDIO_SEPARATOR_COMMAND || "audio-separator";
   const model = process.env.UVR_MODEL || "UVR-MDX-NET-Inst_HQ_4.onnx";
   const modelsDir = process.env.UVR_MODEL_DIR || resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "uvr-models");
@@ -138,7 +156,7 @@ export async function separateVocals(root, id, onProgress = () => {}) {
   const work = join(dir, "separated"); await rm(work, { recursive: true, force: true }); await mkdir(work, { recursive: true });
   const chunkSeconds = String(Math.max(10, Number(process.env.UVR_CHUNK_SECONDS) || 45));
   try {
-    await run("ffmpeg", ["-y", "-i", join(dir, "original.wav"), "-ac", "2", "-ar", "44100", "-c:a", "pcm_s16le", "-f", "segment", "-segment_time", chunkSeconds, join(work, "part%03d.wav")], dir);
+    await run("ffmpeg", ["-y", "-ss", String(wanted.inicio), "-t", String(wanted.fim - wanted.inicio), "-i", join(dir, "original.wav"), "-ac", "2", "-ar", "44100", "-c:a", "pcm_s16le", "-f", "segment", "-segment_time", chunkSeconds, join(work, "part%03d.wav")], dir);
     const parts = (await readdir(work)).filter((n) => /^part\d+\.wav$/.test(n)).sort();
     const outputs = [];
     onProgress(2, "separando");
@@ -154,9 +172,11 @@ export async function separateVocals(root, id, onProgress = () => {}) {
     if (!outputs.length) throw new Error("Áudio vazio para remover a voz.");
     const list = join(work, "list.txt");
     await writeFile(list, outputs.map((f) => `file '${f.replace(/'/g, "'\\''")}'`).join("\n"));
-    await run("ffmpeg", ["-y", "-f", "concat", "-safe", "0", "-i", list, "-ac", "2", "-ar", "48000", "-c:a", "pcm_s16le", instrumental], dir);
+    // Silence outside the separated range keeps instrumental.wav aligned with the original timing.
+    const delay = Math.round(wanted.inicio * 1000);
+    await run("ffmpeg", ["-y", "-f", "concat", "-safe", "0", "-i", list, "-af", `adelay=${delay}:all=1,apad=whole_dur=${info.duracao}`, "-t", String(info.duracao), "-ac", "2", "-ar", "48000", "-c:a", "pcm_s16le", instrumental], dir);
   } finally { await rm(work, { recursive: true, force: true }); }
-  const next = { ...info, instrumentalDisponivel: true, modeloUvr: model };
+  const next = { ...info, instrumentalDisponivel: true, modeloUvr: model, faixaSemVoz: wanted };
   await writeFile(join(dir, "info.json"), JSON.stringify(next));
   return next;
 }

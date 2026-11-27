@@ -39,6 +39,23 @@ export class EditorAudioEngine {
     return promise;
   }
 
+  /** Decoded audio for waveforms and the trimmer preview (shares the playback cache). */
+  loadBuffer(clip: EditorClip) { return this.load(clip); }
+
+  private sourcePreview: AudioBufferSourceNode | undefined;
+  /** Plays the raw source (whole song) from `from` seconds, ignoring the timeline. */
+  async playSource(clip: EditorClip, from: number, onEnd: () => void) {
+    this.stopSource();
+    const buffer = await this.load(clip); const ctx = this.ctx();
+    const source = ctx.createBufferSource(); source.buffer = buffer; source.connect(ctx.destination);
+    source.onended = () => { if (this.sourcePreview === source) { this.sourcePreview = undefined; onEnd(); } };
+    source.start(0, Math.max(0, Math.min(buffer.duration, from)));
+    this.sourcePreview = source;
+    return ctx.currentTime;
+  }
+  stopSource() { const s = this.sourcePreview; this.sourcePreview = undefined; try { s?.stop(); } catch { /* already stopped */ } }
+  now() { return this.ctx().currentTime; }
+
   async play(project: EditorProject, time: number) {
     this.stop();
     const generation = this.generation;

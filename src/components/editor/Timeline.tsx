@@ -1,11 +1,13 @@
 import { useRef, type PointerEvent as ReactPointerEvent } from "react";
+import { Waveform } from "./Waveform";
 import { Music2, Video, Volume2, VolumeX, Waves, Mic2, AudioLines } from "lucide-react";
-import { deleteClip, moveClipTo, splitClip, trimClipTo, updateTrack, type EditorClip, type EditorProject, type EditorTrack } from "@/lib/editor";
+import { moveClipTo, splitClip, trimClipTo, updateTrack, type EditorClip, type EditorProject, type EditorTrack } from "@/lib/editor";
 
 interface DragState { id: string; mode: "move" | "inicio" | "fim"; x: number; clip: EditorClip }
 const icons = { video: Video, efeitos: Waves, musica: Music2, gravacao: Mic2, audio: AudioLines };
 
-export function Timeline({ project, time, px, tool, selectedClip, selectedTrack, onSelectClip, onSelectTrack, onSeek, onChange }: {
+export function Timeline({ project, time, px, tool, selectedClip, selectedTrack, onSelectClip, onSelectTrack, onSeek, onChange, peaks = {} }: {
+  peaks?: Record<string, Float32Array>;
   project: EditorProject; time: number; px: number; tool: "select" | "cut";
   selectedClip: string | undefined; selectedTrack: string | undefined;
   onSelectClip: (id?: string) => void; onSelectTrack: (id: string) => void;
@@ -42,10 +44,9 @@ export function Timeline({ project, time, px, tool, selectedClip, selectedTrack,
       <button key={clip.id} type="button" aria-label={`${clip.nome}, ${clip.inicio.toFixed(1)} a ${(clip.inicio + clip.duracao).toFixed(1)} segundos`}
         onPointerDown={(e) => down(e, clip, "move")} onPointerMove={move} onPointerUp={up} onPointerCancel={up}
         onClick={(e) => e.stopPropagation()}
-        onKeyDown={(e) => { if (e.key === "Delete" || e.key === "Backspace") onChange(deleteClip(project, clip.id)); }}
         data-selected={active} className={`group absolute inset-y-2 min-w-3 touch-none overflow-hidden rounded-md border bg-secondary text-left text-[11px] shadow-sm outline-none data-[selected=true]:border-primary data-[selected=true]:bg-primary/15 data-[selected=true]:ring-1 data-[selected=true]:ring-primary ${tool === "cut" ? "cursor-crosshair" : "cursor-grab active:cursor-grabbing"}`}
         style={{ left: clip.inicio * px, width: Math.max(12, clip.duracao * px) }}>
-        <span className="pointer-events-none absolute inset-0 opacity-40" style={{ backgroundImage: "repeating-linear-gradient(90deg, var(--primary) 0 2px, transparent 2px 8px)" }} />
+        {peaks[`${clip.assetId}:${clip.stem ?? "original"}`] ? <span className="pointer-events-none absolute inset-0 text-primary/60"><Waveform peaks={peaks[`${clip.assetId}:${clip.stem ?? "original"}`]} total={clip.sourceDuration} from={clip.offset} to={clip.offset + clip.duracao} /></span> : <span className="pointer-events-none absolute inset-0 opacity-40" style={{ backgroundImage: "repeating-linear-gradient(90deg, var(--primary) 0 2px, transparent 2px 8px)" }} />}
         <span className="relative block truncate px-4 font-medium text-foreground">{clip.nome}</span>
         <span className="relative block truncate px-4 font-mono text-[9px] text-muted-foreground">{clip.duracao.toFixed(1)}s · {Math.round(clip.volume * track.volume * 100)}%</span>
         <span role="button" tabIndex={0} aria-label={`Aparar início de ${clip.nome}`} onPointerDown={(e) => down(e, clip, "inicio")} onPointerMove={move} onPointerUp={up}

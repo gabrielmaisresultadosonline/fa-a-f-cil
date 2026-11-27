@@ -9,7 +9,7 @@ import { spawn } from "node:child_process";
 import { Readable } from "node:stream";
 import puppeteer from "puppeteer";
 import { RenderQueue, validJobId, validateManifest } from "./jobs.mjs";
-import { copyMediaIntoJob, downloadYoutube, importLocalAudio, mediaDirectory, mediaInfo, mixEditorAudio, separateVocals, streamMediaAudio } from "./audio.mjs";
+import { copyMediaIntoJob, downloadYoutube, importLocalAudio, mediaDirectory, mediaInfo, mixEditorAudio, rangeCovered, separateVocals, separationRange, streamMediaAudio } from "./audio.mjs";
 import { authenticate,assertAdministrator,assertOwner,assertMediaOwner,ownedCloudRow,retentionExpired,authorizedGeneration } from "./security.mjs";
 import { PaymentChecks } from "./payments.mjs";
 import { YoutubeSettings, secureCookieUpload } from './youtube-settings.mjs';
@@ -288,13 +288,14 @@ const server = http.createServer(async (req, res) => {
       if (req.method === "POST" && action === "separate") {
         // UVR on CPU can exceed HTTP timeouts, so run it in the background and let the editor poll.
         const info = await mediaInfo(MEDIA_DIR, id);
-        if (info.instrumentalDisponivel) return json(res, 200, info);
+        const range = separationRange(info, await bodyJson(req).catch(() => ({})));
+        if (info.instrumentalDisponivel && rangeCovered(info.faixaSemVoz, range)) return json(res, 200, info);
         const state = separations.get(id);
         if (state?.erro) { separations.delete(id); return json(res, 400, { erro: state.erro }); }
         if (!state) {
           separations.set(id, { running: true, progresso: 0 });
           const entry = separations.get(id);
-          separateVocals(MEDIA_DIR, id, (p) => { entry.progresso = p; }).then(() => separations.delete(id), (e) => {
+          separateVocals(MEDIA_DIR, id, (p) => { entry.progresso = p; }, range).then(() => separations.delete(id), (e) => {
             console.warn("UVR falhou:", e?.message || e);
             separations.set(id, { erro: "Não foi possível remover a voz desta música no servidor. Verifique se o UVR foi instalado (rode o atualizador) e tente novamente." });
           });

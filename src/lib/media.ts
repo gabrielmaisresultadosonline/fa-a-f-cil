@@ -6,6 +6,7 @@ export interface RemoteAudio {
   nome: string;
   duracao: number;
   instrumentalDisponivel?: boolean;
+  faixaSemVoz?: { inicio: number; fim: number };
 }
 
 async function responseJson(response: Response) {
@@ -33,10 +34,10 @@ export async function downloadYoutubeAudio(url: string, onProgress: ProgressFn =
   throw new Error("O download demorou demais. Tente novamente.");
 }
 
-export async function separateVocals(mediaId: string, onProgress: ProgressFn = () => {}): Promise<RemoteAudio> {
+export async function separateVocals(mediaId: string, onProgress: ProgressFn = () => {}, range?: { inicio: number; fim: number }): Promise<RemoteAudio> {
   // The server separates in the background; poll until the instrumental exists (up to ~40 min).
   for (let i = 0; i < 800; i++) {
-    const response = await renderFetch(`${servidorUrl()}/media/${mediaId}/separate`, { method: "POST" });
+    const response = await renderFetch(`${servidorUrl()}/media/${mediaId}/separate`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(range ?? {}) });
     const data = await responseJson(response) as RemoteAudio & { separando?: boolean; progresso?: number };
     if (!data.separando) { onProgress(100); return data; }
     onProgress(data.progresso || 0);

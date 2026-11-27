@@ -1,14 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, AudioLines, Film, Loader2, Mic2, Monitor, MousePointer2, Music2, Pause, Play, Scissors, Split, Square, Trash2, Youtube } from "lucide-react";
+import { ArrowLeft, AudioLines, ChevronDown, Film, Loader2, Mic2, Monitor, MousePointer2, Music2, Pause, Play, Scissors, Split, Square, Trash2, Youtube } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/motion/AppShell";
 import { RenderStatus } from "@/components/motion/RenderStatus";
 import { Timeline } from "@/components/editor/Timeline";
 import { VideoPreview } from "@/components/editor/VideoPreview";
 import { LocalHelperDialog } from "@/components/editor/LocalHelperDialog";
+import { MusicTrimmer } from "@/components/editor/MusicTrimmer";
+import { peaksFromBuffer } from "@/lib/waveform";
 import { Button } from "@/components/ui/button";
-import { addClip, deleteClip, findClip, getOrCreateEditor, saveEditor, splitClip, updateClip, updateTrack, type EditorModule, type EditorProject } from "@/lib/editor";
+import { addClip, deleteClip, findClip, getOrCreateEditor, saveEditor, setClipWindow, splitClip, updateClip, updateTrack, vocalsRemovedFor, type EditorModule, type EditorProject } from "@/lib/editor";
 import { EditorAudioEngine } from "@/lib/editorAudio";
 import { audioDuration, downloadYoutubeAudio, separateVocals, uploadLocalAudio } from "@/lib/media";
 import { downloadFromMyBrowser } from "@/lib/localYoutube";
@@ -59,6 +61,10 @@ function VideoEditor() {
   const [youtube, setYoutube] = useState("");
   const [youtubeSource, setYoutubeSource] = useState<"local" | "server">("server");
   const [helperOpen, setHelperOpen] = useState(false);
+  const [youtubeOpen, setYoutubeOpen] = useState(false);
+  const [peaks, setPeaks] = useState<Record<string, Float32Array>>({});
+  const peaksLoading = useRef(new Set<string>());
+  const keysRef = useRef<{ toggle: () => void; remove: () => void }>({ toggle: () => {}, remove: () => {} });
   const [recording, setRecording] = useState(false);
   const [recordSeconds, setRecordSeconds] = useState(0);
   const [sending, setSending] = useState(false);
@@ -109,6 +115,31 @@ function VideoEditor() {
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
   }, [playing, run, editor?.id, editor?.duracao, modulo]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Waveforms: decode each audio once (shared with playback) and keep its peaks.
+  useEffect(() => {
+    if (!editor) return;
+    for (const clip of editor.tracks.flatMap((t) => t.tipo === "video" ? [] : t.clips)) {
+      const key = `${clip.assetId}:${clip.stem ?? "original"}`;
+      if (!clip.blob && !clip.mediaId) continue;
+      if (peaks[key] || peaksLoading.current.has(key)) continue;
+      peaksLoading.current.add(key);
+      audioEngine().loadBuffer(clip).then((buffer) => setPeaks((p) => ({ ...p, [key]: peaksFromBuffer(buffer) })))
+        .catch(() => { /* waveform is optional */ }).finally(() => peaksLoading.current.delete(key));
+    }
+  }, [editor, peaks]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Space plays/pauses; Delete or Backspace removes the selected clip (except while typing).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement | null;
+      if (el && (el.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName))) return;
+      if (e.code === "Space") { e.preventDefault(); keysRef.current.toggle(); }
+      else if (e.key === "Delete" || e.key === "Backspace") { e.preventDefault(); keysRef.current.remove(); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   useEffect(() => () => { audioRef.current?.stop(); recorderRef.current?.stream.getTracks().forEach((t) => t.stop()); }, []);
   useEffect(() => {
@@ -204,9 +235,14 @@ function VideoEditor() {
     pause();
     if (stem === "instrumental" && selected.clip.stem !== "instrumental") {
       setBusy("uvr"); setProgress(0);
-      try { await separateVocals(selected.clip.mediaId, setProgress); }
+      let info;
+      try { info = await separateVocals(selected.clip.mediaId, setProgress, { inicio: selected.clip.offset, fim: selected.clip.offset + selected.clip.duracao }); }
       catch (e) { toast.error(e instanceof Error ? e.message : "Não foi possível remover a voz"); setBusy(""); return; }
       setBusy("");
+      audioRef.current?.reset();
+      const current = editorRef.current ?? editor;
+      setEditor(updateClip(current, selected.clip.id, { stem, ...(info.faixaSemVoz ? { faixaSemVoz: info.faixaSemVoz } : {}) }));
+      return;
     }
     audioRef.current?.reset();
     setEditor(updateClip(editor, selected.clip.id, { stem }));
@@ -229,6 +265,19 @@ function VideoEditor() {
   const track = selected?.track ?? editor.tracks.find((t) => t.id === selectedTrack) ?? editor.tracks[0];
   const canSplit = !!selected && time > selected.clip.inicio + 0.05 && time < selected.clip.inicio + selected.clip.duracao - 0.05;
   const backTo = modulo === "motion" ? "/projetos/$id" : "/overlay/$id";
+  const removeSelected = () => { if (!selected) return; pause(); setEditor(deleteClip(editor, selected.clip.id)); setSelectedClip(undefined); };
+  keysRef.current = { toggle: () => void togglePlay(), remove: removeSelected };
+  const changeWindow = (offset: number, duracao: number) => {
+    if (!selected) return;
+    if (playing) pause();
+    let next = setClipWindow(editor, selected.clip.id, offset, duracao);
+    const clip = findClip(next, selected.clip.id)?.clip;
+    if (clip?.stem === "instrumental" && !vocalsRemovedFor(clip)) {
+      next = updateClip(next, clip.id, { stem: "original" }); audioRef.current?.reset();
+      toast.info("O trecho mudou. Clique em Remover voz de novo para este trecho.");
+    }
+    setEditor(next);
+  };
 
   return (
     <AppShell title={`Vídeo editor · ${editor.nome}`} actions={<>
@@ -255,7 +304,10 @@ function VideoEditor() {
             <button onClick={toggleRecording} className={`flex items-center justify-center gap-2 rounded-md border px-3 py-3 text-sm ${recording ? "border-destructive text-destructive" : "border-border hover:border-primary"}`}>
               {recording ? <Square className="h-4 w-4 fill-current" /> : <Mic2 className="h-4 w-4 text-primary" />}{recording ? `Parar gravação · ${recordSeconds.toFixed(1)}s` : "Gravar áudio agora"}
             </button>
-            <div className="md:col-span-2">
+            <button onClick={() => setYoutubeOpen((o) => !o)} aria-expanded={youtubeOpen} className={`flex items-center justify-center gap-2 rounded-md border px-3 py-3 text-sm md:col-span-2 ${youtubeOpen ? "border-primary" : "border-border hover:border-primary"}`}>
+              <Youtube className="h-4 w-4 text-[#ff0033]" />{busy === "youtube" ? `Baixando do YouTube ${progress ?? 0}%` : "Música do YouTube"}<ChevronDown className={`h-4 w-4 transition-transform ${youtubeOpen ? "rotate-180" : ""}`} />
+            </button>
+            {(youtubeOpen || busy === "youtube") && <div className="md:col-span-2">
               <div className="mb-2 flex flex-wrap items-center gap-2">
                 <select aria-label="Origem do download do YouTube" value={youtubeSource} disabled={busy === "youtube"} onChange={(e) => setYoutubeSource(e.target.value === "server" ? "server" : "local")} className="rounded-md border border-input bg-background px-3 py-2 text-sm"><option value="local">Meu navegador</option><option value="server">Servidor</option></select>
                 <Button size="sm" variant="ghost" onClick={() => setHelperOpen(true)}><Monitor />Auxiliar no computador</Button>
@@ -263,7 +315,7 @@ function VideoEditor() {
               <div className="flex flex-col gap-2 sm:flex-row"><div className="relative min-w-0 flex-1"><Youtube className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" /><input value={youtube} onChange={(e) => setYoutube(e.target.value)} placeholder="Cole o link da música no YouTube" className={`${field} pl-9`} /></div><Button variant="outline" onClick={addYoutube} disabled={!youtube.trim() || busy === "youtube"}>{busy === "youtube" ? <Loader2 className="animate-spin" /> : <Music2 />}{busy === "youtube" ? (progress === null ? "Iniciando..." : progress >= 92 ? `Convertendo ${progress}%` : `Baixando ${progress}%`) : "Baixar e adicionar"}</Button></div>
               {busy === "youtube" && youtubeSource === "server" && <div className="space-y-1"><div className="h-1.5 overflow-hidden rounded-full bg-muted"><div className="h-full bg-primary transition-all" style={{ width: `${progress ?? 0}%` }} /></div><p className="text-xs text-muted-foreground">{progress === null ? "Preparando o download..." : `${progress}% concluído`}</p></div>}
               <p className="mt-2 text-xs text-muted-foreground">{youtubeSource === "local" ? "Sessão somente no seu computador · envio somente do áudio." : "Download no servidor, sem acesso ao navegador do seu computador."} Baixe somente conteúdo próprio ou autorizado.</p>
-            </div>
+            </div>}
           </section>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -272,28 +324,30 @@ function VideoEditor() {
               <button aria-label="Cursor de corte" title="Clique em um clipe para dividir" onClick={() => setTool("cut")} data-on={tool === "cut"} className="flex items-center gap-2 rounded px-3 py-1.5 text-xs data-[on=true]:bg-primary data-[on=true]:text-primary-foreground"><Scissors className="h-4 w-4" />Corte</button>
             </div>
             <Button variant="outline" size="sm" disabled={!canSplit} onClick={() => { if (selected) changeFromTimeline(splitClip(editor, selected.clip.id, time)); }}><Split />Dividir no cursor</Button>
+            <Button variant="outline" size="sm" disabled={!selected} onClick={removeSelected} className="text-destructive"><Trash2 />Remover</Button>
             <label className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">Zoom<input aria-label="Zoom da linha do tempo" type="range" min={4} max={80} value={px} onChange={(e) => setPx(Number(e.target.value))} className="w-24 accent-primary" /></label>
           </div>
-          <Timeline project={editor} time={time} px={px} tool={tool} selectedClip={selectedClip} selectedTrack={selectedTrack} onSelectClip={setSelectedClip} onSelectTrack={setSelectedTrack} onSeek={seek} onChange={changeFromTimeline} />
-          <p className="text-xs text-muted-foreground">Com Seleção, arraste o clipe para mover e suas bordas para aparar. Com Corte, clique no ponto desejado para dividir. Para excluir, selecione e pressione Delete.</p>
+          <Timeline project={editor} time={time} px={px} tool={tool} selectedClip={selectedClip} selectedTrack={selectedTrack} onSelectClip={setSelectedClip} onSelectTrack={setSelectedTrack} onSeek={seek} onChange={changeFromTimeline} peaks={peaks} />
+          <p className="text-xs text-muted-foreground">Com Seleção, arraste o clipe para mover e suas bordas para aparar. Com Corte, clique no ponto desejado para dividir. Para excluir, selecione e clique em Remover ou pressione Delete/Backspace. Espaço reproduz e pausa.</p>
         </div>
 
         <aside className="min-w-0 space-y-4 xl:sticky xl:top-24 xl:self-start">
-          <section className="rounded-lg border border-border bg-card p-4">
-            <h2 className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Camadas do vídeo</h2>
+          <details className="group rounded-lg border border-border bg-card p-4">
+            <summary className="flex cursor-pointer list-none items-center justify-between font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Camadas do vídeo ({editor.tracks.length})<ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" /></summary>
             <div className="mt-3 space-y-1">{editor.tracks.map((item) => <button key={item.id} data-on={track?.id === item.id} onClick={() => { setSelectedTrack(item.id); setSelectedClip(undefined); }} className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-xs hover:bg-secondary data-[on=true]:bg-primary/10 data-[on=true]:text-primary"><AudioLines className="h-3.5 w-3.5 shrink-0" /><span className="min-w-0 flex-1 truncate">{item.nome}</span><span className="font-mono text-[10px] text-muted-foreground">{item.tipo === "video" ? "vídeo" : item.clips.length}</span></button>)}</div>
-          </section>
+          </details>
           {track && <section className="rounded-lg border border-border bg-card p-4">
             <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Camada selecionada</p>
             <h2 className="mt-1 break-words font-semibold text-primary">{selected?.clip.nome ?? track.nome}</h2>
-            <div className="mt-4"><AudioControls volume={selected?.clip.volume ?? track.volume} grave={selected?.clip.grave ?? track.grave} agudo={selected?.clip.agudo ?? track.agudo} onChange={(patch) => setEditor(selected ? updateClip(editor, selected.clip.id, patch) : updateTrack(editor, track.id, patch))} /></div>
-            {selected && <div className="mt-4 border-t border-border pt-4"><p className="mb-3 text-xs text-muted-foreground">Ajustes da camada inteira: {track.nome}</p><AudioControls volume={track.volume} grave={track.grave} agudo={track.agudo} onChange={(patch) => setEditor(updateTrack(editor, track.id, patch))} /></div>}
+            {selected?.clip.mediaId || selected?.clip.blob ? <div className="mt-4 border-t border-border pt-4"><p className="mb-2 text-xs font-medium">Recortar música</p><MusicTrimmer clip={selected.clip} peaks={peaks[`${selected.clip.assetId}:${selected.clip.stem ?? "original"}`]} maxLength={editor.duracao - selected.clip.inicio} engine={audioEngine} onBeforePlay={pause} onWindow={changeWindow} /></div> : null}
+            <details className="group mt-4 border-t border-border pt-4"><summary className="flex cursor-pointer list-none items-center justify-between text-xs font-medium">Volume, graves e agudos<ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" /></summary><div className="mt-4"><AudioControls volume={selected?.clip.volume ?? track.volume} grave={selected?.clip.grave ?? track.grave} agudo={selected?.clip.agudo ?? track.agudo} onChange={(patch) => setEditor(selected ? updateClip(editor, selected.clip.id, patch) : updateTrack(editor, track.id, patch))} /></div>
+            {selected && <div className="mt-4 border-t border-border pt-4"><p className="mb-3 text-xs text-muted-foreground">Ajustes da camada inteira: {track.nome}</p><AudioControls volume={track.volume} grave={track.grave} agudo={track.agudo} onChange={(patch) => setEditor(updateTrack(editor, track.id, patch))} /></div>}</details>
             {selected?.clip.mediaId && <div className="mt-5 space-y-2 border-t border-border pt-4">
               <p className="text-xs text-muted-foreground">Voz da música (UVR)</p>
               <div className="grid grid-cols-2 gap-2"><Button variant={selected.clip.stem !== "instrumental" ? "default" : "outline"} size="sm" onClick={() => void changeStem("original")}>Original</Button><Button variant={selected.clip.stem === "instrumental" ? "default" : "outline"} size="sm" disabled={busy === "uvr"} onClick={() => void changeStem("instrumental")}>{busy === "uvr" ? <Loader2 className="animate-spin" /> : <Scissors />}{busy === "uvr" ? `Removendo ${progress ?? 0}%` : "Remover voz"}</Button></div>
               {busy === "uvr" && <div className="space-y-1"><div className="h-1.5 overflow-hidden rounded-full bg-muted"><div className="h-full bg-primary transition-all" style={{ width: `${progress ?? 0}%` }} /></div><p className="text-xs text-muted-foreground">Removendo a voz: {progress ?? 0}% concluído. A primeira vez pode levar alguns minutos para começar.</p></div>}
             </div>}
-            {selected && <Button variant="outline" className="mt-5 w-full text-destructive" onClick={() => { pause(); setEditor(deleteClip(editor, selected.clip.id)); setSelectedClip(undefined); }}><Trash2 />Remover este clipe</Button>}
+            {selected && <Button variant="outline" className="mt-5 w-full text-destructive" onClick={removeSelected}><Trash2 />Remover este clipe</Button>}
           </section>}
           <section className="rounded-lg border border-border bg-card p-4 text-xs text-muted-foreground">
             <h3 className="font-semibold text-foreground">Renderização final</h3>

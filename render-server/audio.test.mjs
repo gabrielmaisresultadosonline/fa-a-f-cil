@@ -4,7 +4,7 @@ import { mkdtemp, mkdir, readFile, readdir, writeFile, chmod, rm } from "node:fs
 import { randomUUID } from "node:crypto";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { downloadYoutube, mixEditorAudio, probeDuration, run, separateVocals, validYoutubeUrl } from "./audio.mjs";
+import { downloadYoutube, mixEditorAudio, probeDuration, rangeCovered, run, separateVocals, validYoutubeUrl } from "./audio.mjs";
 import { validateManifest } from "./jobs.mjs";
 
 const base = { nome: "Teste", engine: "ffmpeg", largura: 320, altura: 180, duracao: 4, fps: 30, overlays: [] };
@@ -100,4 +100,25 @@ test("FFmpeg mixes video, trimmed clips, delay, volume and equalization into a r
     const duration = await probeDuration(mixed);
     assert.ok(Math.abs(duration - 4) < 0.05, `expected 4 seconds, received ${duration}`);
   } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+test("UVR separates only the kept range and keeps the instrumental aligned to the full song", async () => {
+  const root = await mkdtemp(join(tmpdir(), "motion-uvr-range-")), id = randomUUID();
+  const previous = process.env.AUDIO_SEPARATOR_COMMAND;
+  try {
+    const dir = join(root, id); await mkdir(dir, { recursive: true });
+    await run("ffmpeg", ["-y", "-f", "lavfi", "-i", "sine=frequency=440:duration=4", "-c:a", "pcm_s16le", join(dir, "original.wav")], dir);
+    await writeFile(join(dir, "info.json"), JSON.stringify({ id, nome: "Teste", duracao: 4 }));
+    const fake = join(root, "fake-separator.mjs");
+    await writeFile(fake, "#!/usr/bin/env node\nimport {copyFileSync} from 'node:fs';const out=process.argv.indexOf('--output_dir');copyFileSync(process.argv[2],process.argv[out+1]+'/teste_(Instrumental).wav');\n");
+    await chmod(fake, 0o755); process.env.AUDIO_SEPARATOR_COMMAND = fake;
+    const info = await separateVocals(root, id, () => {}, { inicio: 1, fim: 2 });
+    assert.deepEqual(info.faixaSemVoz, { inicio: 1, fim: 2 });
+    assert.ok(Math.abs(await probeDuration(join(dir, "instrumental.wav")) - 4) < 0.05);
+    assert.equal(rangeCovered(info.faixaSemVoz, { inicio: 1.2, fim: 1.8 }), true);
+    assert.equal(rangeCovered(info.faixaSemVoz, { inicio: 0.5, fim: 1.8 }), false);
+  } finally {
+    if (previous === undefined) delete process.env.AUDIO_SEPARATOR_COMMAND; else process.env.AUDIO_SEPARATOR_COMMAND = previous;
+    await rm(root, { recursive: true, force: true });
+  }
 });
