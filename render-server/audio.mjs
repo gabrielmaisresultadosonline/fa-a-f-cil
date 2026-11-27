@@ -2,7 +2,8 @@ import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { createReadStream } from "node:fs";
 import { copyFile, mkdir, readFile, readdir, stat, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 export const validMediaId = (id) => /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
 
@@ -86,7 +87,9 @@ export async function separateVocals(root, id) {
   const separated = join(dir, "separated"); await mkdir(separated, { recursive: true });
   const command = process.env.AUDIO_SEPARATOR_COMMAND || "audio-separator";
   const model = process.env.UVR_MODEL || "UVR-MDX-NET-Inst_HQ_4.onnx";
-  await run(command, [join(dir, "original.wav"), "--model_filename", model, "--output_dir", separated, "--output_format=WAV"], dir);
+  const modelsDir = process.env.UVR_MODEL_DIR || resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "uvr-models");
+  await mkdir(modelsDir, { recursive: true });
+  await run(command, [join(dir, "original.wav"), "--model_filename", model, "--model_file_dir", modelsDir, "--output_dir", separated, "--output_format=WAV"], dir);
   const names = await readdir(separated);
   const source = names.find((name) => /instrumental|accompaniment|other/i.test(name) && /\.(wav|mp3|flac|ogg)$/i.test(name));
   if (!source) throw new Error(`O UVR não gerou a faixa instrumental. Arquivos recebidos: ${names.join(", ").slice(0, 300)}`);
