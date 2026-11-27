@@ -30,6 +30,7 @@ runuser -u motionmro -- env HOME=/opt/motionmro PUPPETEER_CACHE_DIR=/opt/motionm
 python3 -m venv /opt/motionmro/audio-env
 /opt/motionmro/audio-env/bin/pip install --no-cache-dir 'yt-dlp[default]' 'audio-separator[cpu]>=0.48,<1'
 chown -R motionmro:motionmro /opt/motionmro/audio-env /opt/motionmro/.cache
+bash "$ROOT/deploy/update-youtube.sh" motionmro /opt/motionmro/audio-env
 install -d -m 700 /etc/motionmro
 cat > /etc/motionmro/render.env <<EOF
 HOST=127.0.0.1
