@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# MotionMRO — instalação/atualização completa em VPS Ubuntu 24.04 LTS.
+# MotionMRO — instalação/atualização completa em VPS Ubuntu 24.04 ou 26.04 LTS.
 # Uso em uma linha:
 # curl -fsSL https://raw.githubusercontent.com/gabrielmaisresultadosonline/fa-a-f-cil/main/deploy/vps-install.sh -o /tmp/motionmro-install.sh && sudo bash /tmp/motionmro-install.sh
 set -euo pipefail
 if [[ ${EUID} -ne 0 ]]; then echo 'Execute com sudo: sudo bash /tmp/motionmro-install.sh'; exit 1; fi
 source /etc/os-release
-if [[ ${ID:-} != ubuntu || ${VERSION_ID:-} != 24.04 ]]; then echo 'Este instalador requer Ubuntu 24.04 LTS.'; exit 1; fi
+if [[ ${ID:-} != ubuntu ]] || [[ ! ${VERSION_ID:-} =~ ^(24|26)\.04$ ]]; then echo 'Este instalador requer Ubuntu 24.04 ou 26.04 LTS.'; exit 1; fi
 
 APP_USER=motionmro
 APP_HOME=/home/$APP_USER

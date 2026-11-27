@@ -4,6 +4,11 @@ import { readFileSync } from 'node:fs';
 
 const script = readFileSync(new URL('./vps-install.sh', import.meta.url), 'utf8');
 
+test('VPS accepts Ubuntu 24.04 and 26.04 LTS', () => {
+  assert.match(script, /\^\(24\|26\)\\\.04\$/);
+  assert.match(script, /Ubuntu 24\.04 ou 26\.04 LTS/);
+});
+
 test('VPS runs a Node production build instead of exposing the development server', () => {
   assert.match(script, /local\.mjs build/);
   assert.match(script, /local\.mjs start/);

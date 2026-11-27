@@ -2,7 +2,7 @@
 
 Plataforma de criação de Motion IA, Video Overlay, edição por camadas e renderização de vídeos com FFmpeg ou HyperFrames.
 
-## Instalar tudo em uma VPS Ubuntu 24.04 LTS
+## Instalar tudo em uma VPS Ubuntu 24.04 ou 26.04 LTS
 
 Execute esta única linha no terminal:
 

@@ -4,7 +4,7 @@
 - [x] Executar build de produção e manter app, backend e renderização ativos com systemd
 - [x] Entregar uma linha de instalação/atualização, administrador seguro e documentação para motionmro.com.br depois
 - [x] Validar sintaxe, regras de firewall e separação das credenciais com testes automatizados
-- [ ] Executar a instalação completa em uma VPS Ubuntu 24.04 real — depende de acesso à máquina
+- [ ] Concluir a instalação na VPS Ubuntu 26.04.1 do usuário — primeira tentativa parou na restrição de versão, já corrigida; aguardando nova execução
 
 ## Impacto do Overlay
 - [x] Centralizar novas composições e regenerações, alternando escurecimento e fundo sólido de tela inteira

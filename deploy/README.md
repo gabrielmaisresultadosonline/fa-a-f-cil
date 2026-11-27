@@ -1,8 +1,8 @@
-# Instalação MotionMRO — Ubuntu 24.04 LTS
+# Instalação MotionMRO — Ubuntu 24.04 ou 26.04 LTS
 
 ## Comando único para a VPS
 
-Em uma VPS Ubuntu **24.04 LTS**, com acesso root/sudo e IP público, execute esta única linha:
+Em uma VPS Ubuntu **24.04 ou 26.04 LTS**, com acesso root/sudo e IP público, execute esta única linha:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/gabrielmaisresultadosonline/fa-a-f-cil/main/deploy/vps-install.sh -o /tmp/motionmro-install.sh && sudo bash /tmp/motionmro-install.sh
@@ -24,7 +24,7 @@ O firewall libera somente SSH, a porta 80 do aplicativo e a porta 4400 da render
 
 ### Requisitos recomendados
 
-- Ubuntu 24.04 LTS novo ou já existente, arquitetura AMD64 ou ARM64.
+- Ubuntu 24.04 ou 26.04 LTS, arquitetura AMD64 ou ARM64.
 - 4 GB ou mais de RAM, 2 vCPUs e espaço em disco para vídeos e modelos de áudio.
 - Porta SSH disponível e liberação do provedor para as portas 80 e 4400.
 
