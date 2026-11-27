@@ -72,13 +72,15 @@ if [[ ! -x $SUPABASE_BIN ]]; then
 fi
 install -d -o $APP_USER -g $APP_USER -m 700 $STATE $STATE/uvr-models $STATE/puppeteer $STATE/tmp
 export TMPDIR=$STATE/tmp
+# Comandos do usuário do app não podem rodar dentro de /root (sem permissão).
+cd $APP_HOME
 # O UVR exige Python 3.12: versões novas do Ubuntu (ex.: 26.04 com Python 3.14) não têm pacotes prontos.
 UV_BIN=$APP_HOME/.local/bin/uv
 if [[ ! -x $UV_BIN ]]; then
   install -d -o $APP_USER -g $APP_USER $APP_HOME/.local/bin
   runuser -u $APP_USER -- env UV_INSTALL_DIR=$APP_HOME/.local/bin UV_NO_MODIFY_PATH=1 bash -c 'curl -LsSf https://astral.sh/uv/install.sh | sh'
 fi
-UV_ENV="UV_PYTHON_INSTALL_DIR=$STATE/python UV_CACHE_DIR=$STATE/tmp/uv-cache TMPDIR=$STATE/tmp"
+UV_ENV="HOME=$APP_HOME UV_NO_CONFIG=1 UV_PYTHON_INSTALL_DIR=$STATE/python UV_CACHE_DIR=$STATE/tmp/uv-cache TMPDIR=$STATE/tmp"
 if [[ ! -x $VENV/bin/yt-dlp || ! -x $VENV/bin/audio-separator ]] || ! $VENV/bin/python -c 'import sys; sys.exit(sys.version_info[:2] != (3, 12))' 2>/dev/null; then
   rm -rf $VENV
   runuser -u $APP_USER -- env $UV_ENV $UV_BIN venv --seed --python 3.12 $VENV
