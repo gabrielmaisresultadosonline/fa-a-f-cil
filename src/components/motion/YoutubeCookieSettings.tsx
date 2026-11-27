@@ -42,6 +42,7 @@ export function YoutubeCookieSettings({ server }: { server: string }) {
     <div className="flex flex-wrap items-start justify-between gap-4"><div><h3 className="flex items-center gap-2 text-lg font-semibold"><Youtube className="h-5 w-5 text-primary" />Cookies do YouTube</h3><p className="mt-2 text-sm text-muted-foreground">Arquivo privado no servidor. O conteúdo não é exibido nem incluído no código.</p></div>
       <Button variant="outline" size="sm" disabled={busy} onClick={() => void load()}>{busy ? <Loader2 className="animate-spin" /> : <RefreshCw />}Consultar status</Button></div>
     <p className="text-sm text-muted-foreground" role="status">{status ? status.configured ? status.enabled ? 'Cookies configurados e ativos.' : 'Cookies configurados, uso desativado.' : 'Nenhum arquivo configurado pelo administrador.' : 'Consulte o status do servidor antes de alterar.'}</p>
+    {status?.configured && status.updatedAt ? <p className="text-xs text-muted-foreground">Última alteração: {new Date(status.updatedAt).toLocaleString('pt-BR')}</p> : null}
     {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
     <div className="flex flex-wrap items-center gap-3">
       <input ref={input} type="file" accept=".txt" aria-label="Arquivo cookies.txt do YouTube" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) void upload(file); }} />
