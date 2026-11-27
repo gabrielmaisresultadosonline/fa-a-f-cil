@@ -4,6 +4,12 @@
 # curl -fsSL https://raw.githubusercontent.com/gabrielmaisresultadosonline/fa-a-f-cil/main/deploy/vps-install.sh -o /tmp/motionmro-install.sh && sudo bash /tmp/motionmro-install.sh
 set -euo pipefail
 if [[ ${EUID} -ne 0 ]]; then echo 'Execute com sudo: sudo bash /tmp/motionmro-install.sh'; exit 1; fi
+# Roda sempre de uma cópia própria: atualizar o código durante a instalação não pode alterar o script em execução.
+if [[ -z ${MRO_INSTALLER_COPY:-} ]]; then
+  SELF_COPY=$(mktemp /tmp/motionmro-install.XXXXXX.sh)
+  cp "$0" "$SELF_COPY"
+  exec env MRO_INSTALLER_COPY=1 bash "$SELF_COPY" "$@"
+fi
 source /etc/os-release
 if [[ ${ID:-} != ubuntu ]] || [[ ! ${VERSION_ID:-} =~ ^(24|26)\.04$ ]]; then echo 'Este instalador requer Ubuntu 24.04 ou 26.04 LTS.'; exit 1; fi
 
@@ -42,7 +48,10 @@ fi
 # O link de download pode entregar uma cópia antiga por alguns minutos; a versão do repositório sempre manda.
 if [[ -z ${MRO_INSTALLER_REEXEC:-} ]] && ! cmp -s "$0" "$APP_DIR/deploy/vps-install.sh"; then
   echo 'Usando a versão mais nova do instalador baixada do GitHub...'
-  exec env MRO_INSTALLER_REEXEC=1 bash "$APP_DIR/deploy/vps-install.sh" "$@"
+  NEW_COPY=$(mktemp /tmp/motionmro-install.XXXXXX.sh)
+  cp "$APP_DIR/deploy/vps-install.sh" "$NEW_COPY"
+  rm -f "$0"
+  exec env MRO_INSTALLER_COPY=1 MRO_INSTALLER_REEXEC=1 bash "$NEW_COPY" "$@"
 fi
 
 echo '== 4/8 Bun, backend, yt-dlp e UVR =='

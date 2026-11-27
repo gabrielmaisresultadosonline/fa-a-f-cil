@@ -53,5 +53,6 @@ test('VPS installs voice removal on Python 3.12 and keeps going if it fails', ()
 
 test('VPS restarts with the repository installer when the download was an older copy', () => {
   assert.match(script, /cmp -s "\$0" "\$APP_DIR\/deploy\/vps-install\.sh"/);
-  assert.match(script, /exec env MRO_INSTALLER_REEXEC=1 bash "\$APP_DIR\/deploy\/vps-install\.sh"/);
+  assert.match(script, /exec env MRO_INSTALLER_COPY=1 MRO_INSTALLER_REEXEC=1 bash "\$NEW_COPY"/);
+  assert.match(script, /cp "\$0" "\$SELF_COPY"/);
 });
