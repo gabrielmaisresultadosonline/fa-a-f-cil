@@ -1,4 +1,4 @@
-import { get, set, del, keys } from "idb-keyval";
+import { saveCloud, getCloud, deleteCloud, listCloud } from "./cloudRepository";
 import type { Som } from "./sfx";
 import { prepareSceneHtml } from "./sceneLayout";
 
@@ -53,22 +53,18 @@ export interface Project {
   status: "rascunho" | "produzindo" | "pronto" | "erro";
 }
 
-const PREFIX = "project:";
-
 export async function saveProject(p: Project) {
   p.atualizadoEm = Date.now();
-  await set(PREFIX + p.id, p);
+  await saveCloud("motion",p.id,p.config.nome,p);
 }
 export async function getProject(id: string) {
-  return (await get<Project>(PREFIX + id)) ?? null;
+  return getCloud<Project>("motion",id);
 }
 export async function deleteProject(id: string) {
-  await del(PREFIX + id);
+  await deleteCloud("motion",id);
 }
 export async function listProjects() {
-  const ks = (await keys()).filter((k) => String(k).startsWith(PREFIX));
-  const all = await Promise.all(ks.map((k) => get<Project>(k)));
-  return all.filter(Boolean).sort((a, b) => b!.atualizadoEm - a!.atualizadoEm) as Project[];
+  return listCloud<Project>("motion");
 }
 
 export const FORMATOS = [

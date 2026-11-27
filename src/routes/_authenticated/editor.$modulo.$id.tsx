@@ -15,7 +15,7 @@ import { getOverlay, type OverlayProject } from "@/lib/overlays";
 import { enfileirar } from "@/lib/queue";
 import { servidorUrl, type Engine } from "@/lib/serverRender";
 
-export const Route = createFileRoute("/editor/$modulo/$id")({
+export const Route = createFileRoute("/_authenticated/editor/$modulo/$id")({
   head: () => ({ meta: [
     { title: "Editor de vídeo por camadas — MotionMRO" },
     { name: "description", content: "Corte, mova e mixe vídeo, músicas, gravações e efeitos antes de renderizar o MP4." },

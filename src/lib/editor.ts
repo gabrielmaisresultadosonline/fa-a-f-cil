@@ -1,8 +1,8 @@
-import { get, set } from "idb-keyval";
+import { saveCloud, listCloud } from "./cloudRepository";
 import { getOverlay } from "./overlays";
 import { getProject } from "./projects";
 import { renderSfxWav } from "./sfx";
-import { getCreds, SERVIDOR_PADRAO } from "./settings";
+import { getStudioSettings, SERVIDOR_PADRAO } from "./settings";
 
 export type EditorModule = "motion" | "overlay";
 export type TrackKind = "video" | "efeitos" | "musica" | "gravacao" | "audio";
@@ -49,7 +49,6 @@ export interface EditorProject {
   tracks: EditorTrack[];
 }
 
-const key = (modulo: EditorModule, alvoId: string) => `editor:${modulo}:${alvoId}`;
 const clamp = (n: number, min: number, max: number) => Math.min(max, Math.max(min, n));
 
 function track(tipo: TrackKind, nome: string, clips: EditorClip[] = []): EditorTrack {
@@ -58,16 +57,16 @@ function track(tipo: TrackKind, nome: string, clips: EditorClip[] = []): EditorT
 
 export function clipUrl(clip: EditorClip) {
   if (!clip.mediaId) return "";
-  return `${(clip.servidor || getCreds().servidor || SERVIDOR_PADRAO).replace(/\/+$/, "")}/media/${clip.mediaId}/audio?stem=${clip.stem === "instrumental" ? "instrumental" : "original"}`;
+  return `${(clip.servidor || getStudioSettings().servidor || SERVIDOR_PADRAO).replace(/\/+$/, "")}/media/${clip.mediaId}/audio?stem=${clip.stem === "instrumental" ? "instrumental" : "original"}`;
 }
 
 export async function getEditor(modulo: EditorModule, alvoId: string) {
-  return (await get<EditorProject>(key(modulo, alvoId))) ?? null;
+  return (await listCloud<EditorProject>("editor")).find((p)=>p.modulo===modulo && p.alvoId===alvoId) ?? null;
 }
 
 export async function saveEditor(project: EditorProject) {
   project.atualizadoEm = Date.now();
-  await set(key(project.modulo, project.alvoId), project);
+  await saveCloud("editor",project.id,project.nome,project);
 }
 
 export async function getOrCreateEditor(modulo: EditorModule, alvoId: string): Promise<EditorProject> {

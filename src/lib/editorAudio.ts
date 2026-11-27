@@ -1,4 +1,5 @@
 import { clipMix, clipUrl, type EditorClip, type EditorProject } from "./editor";
+import { renderFetch } from "./renderAuth";
 
 interface ActiveClip {
   source: AudioBufferSourceNode;
@@ -27,7 +28,7 @@ export class EditorAudioEngine {
       const data = clip.blob ? await clip.blob.arrayBuffer() : await (async () => {
         const url = clipUrl(clip);
         if (!url) throw new Error(`Áudio indisponível: ${clip.nome}`);
-        const response = await fetch(url);
+        const response = await renderFetch(url);
         if (!response.ok) throw new Error(`Não foi possível carregar ${clip.nome}`);
         return response.arrayBuffer();
       })();

@@ -5,6 +5,7 @@ const mocks=vi.hoisted(()=>({callAgent:vi.fn(),saveProject:vi.fn(),validateScene
 vi.mock("./ai",()=>({callAgent:mocks.callAgent}));
 vi.mock("./projects",()=>({saveProject:mocks.saveProject}));
 vi.mock("./tts",()=>({gerarVoz:mocks.gerarVoz}));
+vi.mock("./saas.functions",()=>({reserveGeneration:vi.fn(),completeGeneration:vi.fn()}));
 vi.mock("./sceneLayout",()=>({prepareSceneHtml:(html:string)=>html,validateSceneLayout:mocks.validateSceneLayout}));
 import { generateScene, runPipeline } from "./pipeline";
 

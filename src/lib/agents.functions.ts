@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { CREATION_RULES } from "./projectBrief";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const CAMERA = `MOVIMENTO DE CÂMERA (obrigatório, com qualidade cinematográfica): envolva todas as camadas num contêiner "câmera" com perspective e aplique movimentos contínuos ao longo da cena conforme o campo movimentoCamera (push-in/dolly lento, pan, tilt 3D, órbita, rack de profundidade com parallax entre camadas de frente/meio/fundo, whip-pan nas transições, shake sutil em impactos). Movimentos suaves com easing (power2/expo), nunca bruscos sem motivo.`;
 
@@ -13,37 +14,48 @@ const PROMPTS: Record<string, string> = {
 };
 
 export const runAgent = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator(
     z.object({
       agente: z.enum(["diretor", "roteirista", "desenvolvedor", "overlay_plano", "overlay_dev"]),
       contexto: z.string().min(1).max(120000),
       largura: z.number().int().min(100).max(8000),
       altura: z.number().int().min(100).max(8000),
-      token: z.string().max(500).optional(),
+      projectId: z.uuid(),
+      stage: z.string().min(1).max(160),
       modelo: z.string().max(80).optional(),
     }),
   )
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    const { studioSettings, openaiToken } = await import("./saas.server");
+    const settings = await studioSettings();
+    const token = await openaiToken();
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data:generationId,error:denied } = await supabaseAdmin.rpc("generation_call",{p_user:context.userId,p_project:data.projectId});
+    if (denied) throw new Error(denied.message);
     const prompt = PROMPTS[data.agente];
     if (!prompt) throw new Error("Agente desconhecido.");
     const system = `${prompt}\n\n${CREATION_RULES}`.replaceAll("WIDTH", String(data.largura)).replaceAll("HEIGHT", String(data.altura));
     let text = "", entrada = 0, saida = 0;
-    if (data.token) {
+    if (token) {
       const r = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
-        headers: { Authorization: `Bearer ${data.token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ model: data.modelo || "gpt-6.1-terra", messages: [{ role: "system", content: system }, { role: "user", content: data.contexto }] }),
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ model: settings.model, messages: [{ role: "system", content: system }, { role: "user", content: data.contexto }] }),
       });
       if (!r.ok) {
+        await supabaseAdmin.rpc("finish_generation",{p_user:context.userId,p_project:data.projectId,p_failed:true});
         const t = await r.text();
         if (r.status === 401) throw new Error("Token da OpenAI inválido. Confira em Administração.");
-        if (r.status === 404) throw new Error(`O modelo "${data.modelo}" não está disponível na sua conta OpenAI. Escolha outro em Administração.`);
+        if (r.status === 404) throw new Error("O modelo configurado não está disponível na conta OpenAI do estúdio. Avise a administração.");
         if (r.status === 429) throw new Error("A OpenAI recusou por limite ou falta de saldo na sua conta.");
         throw new Error(`OpenAI ${r.status}: ${t.slice(0, 200)}`);
       }
       const j = (await r.json()) as { choices?: { message?: { content?: string } }[]; usage?: { prompt_tokens?: number; completion_tokens?: number } };
       text = j.choices?.[0]?.message?.content ?? "";
       entrada = j.usage?.prompt_tokens ?? 0; saida = j.usage?.completion_tokens ?? 0;
+      const { error:costError } = await supabaseAdmin.from("usage_costs").insert({user_id:context.userId,project_id:data.projectId,generation_id:generationId,kind:"ia",stage:data.stage,model:settings.model,input_tokens:entrada,output_tokens:saida,units:entrada+saida});
+      if (costError) throw new Error("Consumo recebido, mas o registro de custos falhou. Avise a administração.");
     } else {
       throw new Error("Cadastre seu token da OpenAI em Administração.");
     }

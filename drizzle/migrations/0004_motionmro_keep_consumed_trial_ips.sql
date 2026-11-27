@@ -1,0 +1,1 @@
+ALTER TABLE public.trial_claims DROP CONSTRAINT trial_claims_user_id_fkey;

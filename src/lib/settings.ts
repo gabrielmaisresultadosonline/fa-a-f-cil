@@ -15,6 +15,9 @@ export function getCreds(): Creds {
   try { return JSON.parse(localStorage.getItem(K) || "{}") as Creds; } catch { return {}; }
 }
 export function setCreds(c: Creds) { localStorage.setItem(K, JSON.stringify({ ...getCreds(), ...c })); }
+let publicSettings: Creds = {};
+export function setPublicSettings(c: Creds) { publicSettings = c; }
+export function getStudioSettings(): Creds { return publicSettings; }
 export const MODELO_PADRAO = "gpt-6.1-terra";
 export const MODELO_SUPERVISOR = "gpt-6.1-terra";
 export const MODELOS: { id: string; nome: string }[] = [
@@ -28,6 +31,6 @@ export const PRECOS_PADRAO: Precos = {
   transcricaoMin: 0.006, vozMilChars: 0.3, dolar: 5.5,
 };
 export function getPrecos(): Precos {
-  const p = getCreds().precos;
+  const p = publicSettings.precos ?? getCreds().precos;
   return { ...PRECOS_PADRAO, ...p, modelos: { ...PRECOS_PADRAO.modelos, ...p?.modelos } };
 }

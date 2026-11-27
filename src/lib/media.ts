@@ -1,4 +1,5 @@
 import { servidorUrl } from "./serverRender";
+import { renderFetch } from "./renderAuth";
 
 export interface RemoteAudio {
   id: string;
@@ -14,14 +15,14 @@ async function responseJson(response: Response) {
 }
 
 export async function downloadYoutubeAudio(url: string): Promise<RemoteAudio> {
-  const response = await fetch(`${servidorUrl()}/media/youtube`, {
+  const response = await renderFetch(`${servidorUrl()}/media/youtube`, {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url }),
   });
   return await responseJson(response) as RemoteAudio;
 }
 
 export async function separateVocals(mediaId: string): Promise<RemoteAudio> {
-  const response = await fetch(`${servidorUrl()}/media/${mediaId}/separate`, { method: "POST" });
+  const response = await renderFetch(`${servidorUrl()}/media/${mediaId}/separate`, { method: "POST" });
   return await responseJson(response) as RemoteAudio;
 }
 

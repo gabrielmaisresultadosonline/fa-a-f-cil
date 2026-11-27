@@ -7,7 +7,7 @@ import { JobDownload, JobProgress, JobRetry } from "@/components/motion/RenderSt
 import { Button } from "@/components/ui/button";
 import { listJobs, onQueue, removeJob, type Job } from "@/lib/queue";
 
-export const Route = createFileRoute("/fila")({
+export const Route = createFileRoute("/_authenticated/fila")({
   head: () => ({ meta: [
     { title: "Fila de renderização — MotionMRO" },
     { name: "description", content: "Acompanhe e baixe os vídeos que estão sendo renderizados." },

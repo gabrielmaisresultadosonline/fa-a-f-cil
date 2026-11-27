@@ -9,6 +9,8 @@ import { Readable } from "node:stream";
 import puppeteer from "puppeteer";
 import { RenderQueue, validJobId, validateManifest } from "./jobs.mjs";
 import { copyMediaIntoJob, downloadYoutube, mediaDirectory, mediaInfo, mixEditorAudio, separateVocals, streamMediaAudio } from "./audio.mjs";
+import { authenticate,assertOwner,assertMediaOwner,ownedCloudRow,retentionExpired,authorizedGeneration } from "./security.mjs";
+import { PaymentChecks } from "./payments.mjs";
 
 const PORT = Number(process.env.PORT || 4400);
 const HOST = process.env.HOST || "127.0.0.1";
@@ -39,6 +41,8 @@ async function renderOverlayFrames(browser, ov, i, m, dir, onFrame) {
   const page = await browser.newPage();
   try {
     await page.setViewport({ width: m.largura, height: m.altura });
+    await page.setRequestInterception(true);
+    page.on("request",(request)=>{try{const url=new URL(request.url());if(["data:","about:","blob:"].includes(url.protocol)||["cdn.jsdelivr.net","fonts.googleapis.com","fonts.gstatic.com"].includes(url.hostname))void request.continue();else void request.abort();}catch{void request.abort();}});
     await page.setContent(ov.html, { waitUntil: "networkidle0", timeout: 60000 });
     await page.evaluate(() => document.fonts?.ready);
     await page.evaluate(() => window.__motionLayoutReady);
@@ -159,8 +163,10 @@ tl.set({}, {}, ${m.duracao});window.__timelines=window.__timelines||{};window.__
   return out;
 }
 
-function cors(res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
+function cors(req,res) {
+  const origins=(process.env.CORS_ORIGINS||process.env.APP_ORIGIN||"http://localhost:8080").split(",");
+  if(origins.includes(req.headers.origin))res.setHeader("Access-Control-Allow-Origin",req.headers.origin);
+  res.setHeader("Vary","Origin");
   res.setHeader("Access-Control-Allow-Methods", "POST, GET, DELETE, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "*");
   res.setHeader("Access-Control-Allow-Private-Network", "true");
@@ -194,6 +200,10 @@ const queue = new RenderQueue(DATA_DIR, async (m, dir, progress) => {
 }, process.env.RENDER_CONCURRENCY);
 await queue.init();
 await mkdir(MEDIA_DIR, { recursive: true });
+const checks=new PaymentChecks(join(DATA_DIR,"payment-checks"),process.env.APP_ORIGIN||"http://localhost:8080");
+await checks.init();
+const expireVideos=async()=>{for(const job of queue.jobs.values())if(retentionExpired(job))await queue.expire(job.id);};
+await expireVideos();setInterval(()=>void expireVideos().catch(()=>{}),60000).unref();
 
 const json = (res, status, value) => { res.writeHead(status, { "Content-Type": "application/json", "Cache-Control": "no-store" }); res.end(JSON.stringify(value)); };
 async function bodyJson(req) {
@@ -203,19 +213,24 @@ async function bodyJson(req) {
 }
 
 http.createServer(async (req, res) => {
-  cors(res);
+  cors(req,res);
   if (req.method === "OPTIONS") { res.writeHead(204); return res.end(); }
   const path = new URL(req.url || "/", "http://localhost").pathname;
-  if (req.method === "GET" && path === "/") return json(res, 200, { ok: true, app: "motionmro-render", version: 3, backgroundQueue: true, mediaTools: true });
+  if (req.method === "GET" && path === "/") return json(res, 200, { ok: true, app: "motionmro-render", version: 4, backgroundQueue: true, mediaTools: true,secureAccounts:true,retentionDays:2 });
   try {
+    const user=await authenticate(req);
+    if(req.method==="POST"&&path==="/payment-checks"){
+      const body=await bodyJson(req);await ownedCloudRow(user,"payment_orders",body.id);await checks.add(body.id,body.key,user.id);return json(res,202,{accepted:true});
+    }
     if (req.method === "POST" && path === "/media/youtube") {
       const body = await bodyJson(req);
-      return json(res, 201, await downloadYoutube(MEDIA_DIR, String(body.url || "")));
+      const media=await downloadYoutube(MEDIA_DIR, String(body.url || ""));await writeFile(join(MEDIA_DIR,media.id,"owner.json"),JSON.stringify({user_id:user.id}));return json(res,201,media);
     }
     const media = /^\/media\/([^/]+)(?:\/(audio|separate))?$/.exec(path);
     if (media) {
       const [, id, action] = media;
       mediaDirectory(MEDIA_DIR, id);
+      await assertMediaOwner(MEDIA_DIR,id,user);
       if (req.method === "GET" && !action) return json(res, 200, await mediaInfo(MEDIA_DIR, id));
       if (req.method === "POST" && action === "separate") return json(res, 200, await separateVocals(MEDIA_DIR, id));
       if (req.method === "GET" && action === "audio") {
@@ -232,7 +247,7 @@ http.createServer(async (req, res) => {
     if (!match || !validJobId(match[1])) return json(res, 404, { erro: "Atualize o servidor de renderização para a versão 3." });
     const [, id, action] = match;
     if (req.method === "POST" && !action) {
-      if (queue.get(id)) { req.resume(); return json(res, 200, queue.get(id)); }
+      if (queue.get(id)) { assertOwner(queue.get(id).userId,user);req.resume(); return json(res, 200, queue.get(id)); }
       if (Number(req.headers["content-length"]) > MAX_UPLOAD) return json(res, 413, { erro: "Arquivo excede o limite de envio do servidor" });
       let received = 0;
       const limited = Readable.from((async function* () {
@@ -244,6 +259,12 @@ http.createServer(async (req, res) => {
       })());
       const form = await new Request("http://localhost", { method: "POST", headers: req.headers, body: limited, duplex: "half" }).formData();
       const m = validateManifest(JSON.parse(String(form.get("manifest"))));
+      const project=await ownedCloudRow(user,"customer_projects",m.projectId);
+      await authorizedGeneration(user,m.projectId);
+      if(!["motion","overlay"].includes(project.kind)||project.data?.status!=="pronto")throw new Error("Conclua a prévia antes de renderizar.");
+      const duration=project.kind==="motion"?project.data.config?.duracao:project.data.duracao;
+      if(!Number.isFinite(duration)||m.duracao>duration+0.01||duration>600)throw new Error("Duração não autorizada.");
+      m.userId=user.id;
       const job = await queue.submit(id, m, async (dir) => {
         for (const [field, name] of [["video", "input.mp4"], ["sfx", "sfx.wav"]]) {
           const file = form.get(field);
@@ -252,7 +273,7 @@ http.createServer(async (req, res) => {
         for (let i = 0; i < (m.audio?.clips.length ?? 0); i++) {
           const clip = m.audio.clips[i], file = form.get(`audio_${i}`), destination = join(dir, `audio_${i}`);
           if (file && typeof file !== "string") await writeFile(destination, Buffer.from(await file.arrayBuffer()));
-          else if (clip.mediaId) await copyMediaIntoJob(MEDIA_DIR, clip.mediaId, clip.stem || "original", destination);
+          else if (clip.mediaId) {await assertMediaOwner(MEDIA_DIR,clip.mediaId,user);await copyMediaIntoJob(MEDIA_DIR, clip.mediaId, clip.stem || "original", destination);}
           else throw new Error(`O clipe ${i + 1} não tem um arquivo de áudio`);
         }
       });
@@ -260,6 +281,8 @@ http.createServer(async (req, res) => {
     }
     const job = queue.get(id);
     if (!job) return json(res, 404, { erro: "Renderização não encontrada neste servidor" });
+    assertOwner(job.userId,user);
+    if(retentionExpired(job)){await queue.expire(id);return json(res,410,{erro:"MP4 expirado após dois dias"});}
     if (req.method === "GET" && !action) return json(res, 200, job);
     if (req.method === "POST" && action === "retry") return json(res, 202, await queue.retry(id));
     if (req.method === "DELETE" && !action) { await queue.remove(id); return json(res, 200, { ok: true }); }
@@ -275,7 +298,7 @@ http.createServer(async (req, res) => {
     }
     return json(res, 405, { erro: "Operação indisponível" });
   } catch (e) {
-    console.error(e);
+    console.warn("Operação recusada:",e?.message||"erro");
     if (!res.headersSent) json(res, 400, { erro: String(e?.message || e) });
     else res.destroy();
   }

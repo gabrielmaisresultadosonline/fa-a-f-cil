@@ -15,7 +15,7 @@ import type { Engine } from "@/lib/serverRender";
 import { enfileirar } from "@/lib/queue";
 import { prepareSceneHtml } from "@/lib/sceneLayout";
 
-export const Route = createFileRoute("/overlay/$id")({
+export const Route = createFileRoute("/_authenticated/overlay/$id")({
   validateSearch: z.object({ iniciar: z.boolean().optional() }),
   head: () => ({ meta: [
     { title: "Editor de overlay — MotionMRO" },

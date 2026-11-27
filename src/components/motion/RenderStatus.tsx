@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { downloadJobUrl, listJobs, onQueue, retryJob, type Job } from "@/lib/queue";
 import { download } from "@/lib/recorder";
+import { renderDownload } from "@/lib/renderAuth";
 
 export function JobProgress({ job }: { job: Job }) {
   const value = job.status === "concluido" ? 100 : job.status === "enviando" ? job.envio ?? 0 : job.progresso ?? 0;
@@ -19,13 +20,14 @@ export function JobProgress({ job }: { job: Job }) {
 
 export function JobDownload({ job }: { job: Job }) {
   const href = downloadJobUrl(job);
-  if (href) return <Button asChild size="sm"><a href={href}><Download />Salvar / baixar MP4</a></Button>;
+  if (href) return <Button size="sm" onClick={()=>void renderDownload(href,`${job.nome}.mp4`).catch((e)=>toast.error(e.message))}><Download />Salvar / baixar MP4</Button>;
   if (job.resultado) return <Button size="sm" onClick={() => { if (job.resultado) download(job.resultado, `${job.nome.replace(/\W+/g, "_")}.mp4`); }}><Download />Baixar MP4</Button>;
   return null;
 }
 
 export function JobRetry({ job }: { job: Job }) {
   const [busy, setBusy] = useState(false);
+  if(job.expirado)return null;
   return <Button variant="outline" size="sm" disabled={busy} onClick={async () => {
     setBusy(true);
     try { await retryJob(job); } catch (e) { toast.error(e instanceof Error ? e.message : "Não foi possível repetir"); }
@@ -54,6 +56,6 @@ export function RenderStatus({ alvoId }: { alvoId: string }) {
     {job.status !== "erro" && <JobProgress job={job} />}
     {job.erro && <p className="break-words text-xs text-destructive">{job.erro}</p>}
     {job.conexao && <p className="text-xs text-destructive">{job.conexao}</p>}
-    <p className="text-xs text-muted-foreground">{job.status === "enviando" ? "Aguarde a confirmação do envio antes de fechar o navegador." : job.status === "concluido" ? "O MP4 permanece disponível para download até você remover o trabalho." : job.remoto ? "Pode minimizar ou fechar o navegador. Mantenha o servidor ligado." : "O envio precisa ser confirmado pelo servidor."}</p>
+    <p className="text-xs text-muted-foreground">{job.status === "enviando" ? "Aguarde a confirmação do envio antes de fechar o navegador." : job.status === "concluido" ? "Baixe o MP4 em até dois dias após a conclusão. Depois ele é excluído; o projeto permanece salvo." : job.remoto ? "Pode minimizar ou fechar o navegador. Mantenha o servidor ligado." : "O envio precisa ser confirmado pelo servidor."}</p>
   </section>;
 }

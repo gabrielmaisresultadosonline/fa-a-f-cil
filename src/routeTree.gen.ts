@@ -10,20 +10,37 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as CadastroRouteImport } from './routes/cadastro'
 import { Route as CustosRouteImport } from './routes/custos'
-import { Route as FilaRouteImport } from './routes/fila'
-import { Route as NovoRouteImport } from './routes/novo'
-import { Route as OverlayIndexRouteImport } from './routes/overlay.index'
-import { Route as OverlayIdRouteImport } from './routes/overlay.$id'
-import { Route as ProjetosIndexRouteImport } from './routes/projetos.index'
-import { Route as ProjetosIdRouteImport } from './routes/projetos.$id'
-import { Route as RenderizarIdRouteImport } from './routes/renderizar.$id'
-import { Route as EditorModuloIdRouteImport } from './routes/editor.$modulo.$id'
+import { Route as PagamentoRouteImport } from './routes/pagamento'
+import { Route as PlanosRouteImport } from './routes/planos'
+import { Route as PrivacidadeRouteImport } from './routes/privacidade'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as AuthenticatedAdminRouteRouteImport } from './routes/_authenticated/_admin/route'
+import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedFilaRouteImport } from './routes/_authenticated/fila'
+import { Route as AuthenticatedNovoRouteImport } from './routes/_authenticated/novo'
+import { Route as AuthenticatedOverlayIndexRouteImport } from './routes/_authenticated/overlay.index'
+import { Route as AuthenticatedOverlayIdRouteImport } from './routes/_authenticated/overlay.$id'
+import { Route as AuthenticatedProjetosIndexRouteImport } from './routes/_authenticated/projetos.index'
+import { Route as AuthenticatedProjetosIdRouteImport } from './routes/_authenticated/projetos.$id'
+import { Route as AuthenticatedRenderizarIdRouteImport } from './routes/_authenticated/renderizar.$id'
+import { Route as ApiPublicInfinitepayRouteImport } from './routes/api/public/infinitepay'
+import { Route as ApiPublicPaymentPollRouteImport } from './routes/api/public/payment-poll'
+import { Route as AuthenticatedAdminAdminCustosRouteImport } from './routes/_authenticated/_admin/admin.custos'
+import { Route as AuthenticatedAdminAdminPainelRouteImport } from './routes/_authenticated/_admin/admin.painel'
+import { Route as AuthenticatedEditorModuloIdRouteImport } from './routes/_authenticated/editor.$modulo.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -31,146 +48,282 @@ const AdminRoute = AdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CadastroRoute = CadastroRouteImport.update({
+  id: '/cadastro',
+  path: '/cadastro',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CustosRoute = CustosRouteImport.update({
   id: '/custos',
   path: '/custos',
   getParentRoute: () => rootRouteImport,
 } as any)
-const FilaRoute = FilaRouteImport.update({
+const PagamentoRoute = PagamentoRouteImport.update({
+  id: '/pagamento',
+  path: '/pagamento',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlanosRoute = PlanosRouteImport.update({
+  id: '/planos',
+  path: '/planos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacidadeRoute = PrivacidadeRouteImport.update({
+  id: '/privacidade',
+  path: '/privacidade',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedAdminRouteRoute = AuthenticatedAdminRouteRouteImport.update({
+  id: '/_admin',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedFilaRoute = AuthenticatedFilaRouteImport.update({
   id: '/fila',
   path: '/fila',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const NovoRoute = NovoRouteImport.update({
+const AuthenticatedNovoRoute = AuthenticatedNovoRouteImport.update({
   id: '/novo',
   path: '/novo',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const OverlayIndexRoute = OverlayIndexRouteImport.update({
-  id: '/overlay/',
-  path: '/overlay/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const OverlayIdRoute = OverlayIdRouteImport.update({
+const AuthenticatedOverlayIndexRoute =
+  AuthenticatedOverlayIndexRouteImport.update({
+    id: '/overlay/',
+    path: '/overlay/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedOverlayIdRoute = AuthenticatedOverlayIdRouteImport.update({
   id: '/overlay/$id',
   path: '/overlay/$id',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const ProjetosIndexRoute = ProjetosIndexRouteImport.update({
-  id: '/projetos/',
-  path: '/projetos/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProjetosIdRoute = ProjetosIdRouteImport.update({
+const AuthenticatedProjetosIndexRoute =
+  AuthenticatedProjetosIndexRouteImport.update({
+    id: '/projetos/',
+    path: '/projetos/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedProjetosIdRoute = AuthenticatedProjetosIdRouteImport.update({
   id: '/projetos/$id',
   path: '/projetos/$id',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedRenderizarIdRoute =
+  AuthenticatedRenderizarIdRouteImport.update({
+    id: '/renderizar/$id',
+    path: '/renderizar/$id',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const ApiPublicInfinitepayRoute = ApiPublicInfinitepayRouteImport.update({
+  id: '/api/public/infinitepay',
+  path: '/api/public/infinitepay',
   getParentRoute: () => rootRouteImport,
 } as any)
-const RenderizarIdRoute = RenderizarIdRouteImport.update({
-  id: '/renderizar/$id',
-  path: '/renderizar/$id',
+const ApiPublicPaymentPollRoute = ApiPublicPaymentPollRouteImport.update({
+  id: '/api/public/payment-poll',
+  path: '/api/public/payment-poll',
   getParentRoute: () => rootRouteImport,
 } as any)
-const EditorModuloIdRoute = EditorModuloIdRouteImport.update({
-  id: '/editor/$modulo/$id',
-  path: '/editor/$modulo/$id',
-  getParentRoute: () => rootRouteImport,
-} as any)
+const AuthenticatedAdminAdminCustosRoute =
+  AuthenticatedAdminAdminCustosRouteImport.update({
+    id: '/admin/custos',
+    path: '/admin/custos',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedAdminAdminPainelRoute =
+  AuthenticatedAdminAdminPainelRouteImport.update({
+    id: '/admin/painel',
+    path: '/admin/painel',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedEditorModuloIdRoute =
+  AuthenticatedEditorModuloIdRouteImport.update({
+    id: '/editor/$modulo/$id',
+    path: '/editor/$modulo/$id',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/auth': typeof AuthRoute
+  '/cadastro': typeof CadastroRoute
   '/custos': typeof CustosRoute
-  '/fila': typeof FilaRoute
-  '/novo': typeof NovoRoute
-  '/overlay/$id': typeof OverlayIdRoute
-  '/projetos/$id': typeof ProjetosIdRoute
-  '/renderizar/$id': typeof RenderizarIdRoute
-  '/overlay/': typeof OverlayIndexRoute
-  '/projetos/': typeof ProjetosIndexRoute
-  '/editor/$modulo/$id': typeof EditorModuloIdRoute
+  '/pagamento': typeof PagamentoRoute
+  '/planos': typeof PlanosRoute
+  '/privacidade': typeof PrivacidadeRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/dashboard': typeof AuthenticatedDashboardRoute
+  '/fila': typeof AuthenticatedFilaRoute
+  '/novo': typeof AuthenticatedNovoRoute
+  '/overlay/$id': typeof AuthenticatedOverlayIdRoute
+  '/projetos/$id': typeof AuthenticatedProjetosIdRoute
+  '/renderizar/$id': typeof AuthenticatedRenderizarIdRoute
+  '/api/public/infinitepay': typeof ApiPublicInfinitepayRoute
+  '/api/public/payment-poll': typeof ApiPublicPaymentPollRoute
+  '/overlay/': typeof AuthenticatedOverlayIndexRoute
+  '/projetos/': typeof AuthenticatedProjetosIndexRoute
+  '/admin/custos': typeof AuthenticatedAdminAdminCustosRoute
+  '/admin/painel': typeof AuthenticatedAdminAdminPainelRoute
+  '/editor/$modulo/$id': typeof AuthenticatedEditorModuloIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/auth': typeof AuthRoute
+  '/cadastro': typeof CadastroRoute
   '/custos': typeof CustosRoute
-  '/fila': typeof FilaRoute
-  '/novo': typeof NovoRoute
-  '/overlay/$id': typeof OverlayIdRoute
-  '/projetos/$id': typeof ProjetosIdRoute
-  '/renderizar/$id': typeof RenderizarIdRoute
-  '/overlay': typeof OverlayIndexRoute
-  '/projetos': typeof ProjetosIndexRoute
-  '/editor/$modulo/$id': typeof EditorModuloIdRoute
+  '/pagamento': typeof PagamentoRoute
+  '/planos': typeof PlanosRoute
+  '/privacidade': typeof PrivacidadeRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/dashboard': typeof AuthenticatedDashboardRoute
+  '/fila': typeof AuthenticatedFilaRoute
+  '/novo': typeof AuthenticatedNovoRoute
+  '/overlay/$id': typeof AuthenticatedOverlayIdRoute
+  '/projetos/$id': typeof AuthenticatedProjetosIdRoute
+  '/renderizar/$id': typeof AuthenticatedRenderizarIdRoute
+  '/api/public/infinitepay': typeof ApiPublicInfinitepayRoute
+  '/api/public/payment-poll': typeof ApiPublicPaymentPollRoute
+  '/overlay': typeof AuthenticatedOverlayIndexRoute
+  '/projetos': typeof AuthenticatedProjetosIndexRoute
+  '/admin/custos': typeof AuthenticatedAdminAdminCustosRoute
+  '/admin/painel': typeof AuthenticatedAdminAdminPainelRoute
+  '/editor/$modulo/$id': typeof AuthenticatedEditorModuloIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/admin': typeof AdminRoute
+  '/auth': typeof AuthRoute
+  '/cadastro': typeof CadastroRoute
   '/custos': typeof CustosRoute
-  '/fila': typeof FilaRoute
-  '/novo': typeof NovoRoute
-  '/overlay/$id': typeof OverlayIdRoute
-  '/projetos/$id': typeof ProjetosIdRoute
-  '/renderizar/$id': typeof RenderizarIdRoute
-  '/overlay/': typeof OverlayIndexRoute
-  '/projetos/': typeof ProjetosIndexRoute
-  '/editor/$modulo/$id': typeof EditorModuloIdRoute
+  '/pagamento': typeof PagamentoRoute
+  '/planos': typeof PlanosRoute
+  '/privacidade': typeof PrivacidadeRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/_authenticated/_admin': typeof AuthenticatedAdminRouteRouteWithChildren
+  '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/fila': typeof AuthenticatedFilaRoute
+  '/_authenticated/novo': typeof AuthenticatedNovoRoute
+  '/_authenticated/overlay/$id': typeof AuthenticatedOverlayIdRoute
+  '/_authenticated/projetos/$id': typeof AuthenticatedProjetosIdRoute
+  '/_authenticated/renderizar/$id': typeof AuthenticatedRenderizarIdRoute
+  '/api/public/infinitepay': typeof ApiPublicInfinitepayRoute
+  '/api/public/payment-poll': typeof ApiPublicPaymentPollRoute
+  '/_authenticated/overlay/': typeof AuthenticatedOverlayIndexRoute
+  '/_authenticated/projetos/': typeof AuthenticatedProjetosIndexRoute
+  '/_authenticated/_admin/admin/custos': typeof AuthenticatedAdminAdminCustosRoute
+  '/_authenticated/_admin/admin/painel': typeof AuthenticatedAdminAdminPainelRoute
+  '/_authenticated/editor/$modulo/$id': typeof AuthenticatedEditorModuloIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/admin'
+    | '/auth'
+    | '/cadastro'
     | '/custos'
+    | '/pagamento'
+    | '/planos'
+    | '/privacidade'
+    | '/reset-password'
+    | '/dashboard'
     | '/fila'
     | '/novo'
     | '/overlay/$id'
     | '/projetos/$id'
     | '/renderizar/$id'
+    | '/api/public/infinitepay'
+    | '/api/public/payment-poll'
     | '/overlay/'
     | '/projetos/'
+    | '/admin/custos'
+    | '/admin/painel'
     | '/editor/$modulo/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/admin'
+    | '/auth'
+    | '/cadastro'
     | '/custos'
+    | '/pagamento'
+    | '/planos'
+    | '/privacidade'
+    | '/reset-password'
+    | '/dashboard'
     | '/fila'
     | '/novo'
     | '/overlay/$id'
     | '/projetos/$id'
     | '/renderizar/$id'
+    | '/api/public/infinitepay'
+    | '/api/public/payment-poll'
     | '/overlay'
     | '/projetos'
+    | '/admin/custos'
+    | '/admin/painel'
     | '/editor/$modulo/$id'
   id:
     | '__root__'
     | '/'
+    | '/_authenticated'
     | '/admin'
+    | '/auth'
+    | '/cadastro'
     | '/custos'
-    | '/fila'
-    | '/novo'
-    | '/overlay/$id'
-    | '/projetos/$id'
-    | '/renderizar/$id'
-    | '/overlay/'
-    | '/projetos/'
-    | '/editor/$modulo/$id'
+    | '/pagamento'
+    | '/planos'
+    | '/privacidade'
+    | '/reset-password'
+    | '/_authenticated/_admin'
+    | '/_authenticated/dashboard'
+    | '/_authenticated/fila'
+    | '/_authenticated/novo'
+    | '/_authenticated/overlay/$id'
+    | '/_authenticated/projetos/$id'
+    | '/_authenticated/renderizar/$id'
+    | '/api/public/infinitepay'
+    | '/api/public/payment-poll'
+    | '/_authenticated/overlay/'
+    | '/_authenticated/projetos/'
+    | '/_authenticated/_admin/admin/custos'
+    | '/_authenticated/_admin/admin/painel'
+    | '/_authenticated/editor/$modulo/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AdminRoute: typeof AdminRoute
+  AuthRoute: typeof AuthRoute
+  CadastroRoute: typeof CadastroRoute
   CustosRoute: typeof CustosRoute
-  FilaRoute: typeof FilaRoute
-  NovoRoute: typeof NovoRoute
-  OverlayIdRoute: typeof OverlayIdRoute
-  ProjetosIdRoute: typeof ProjetosIdRoute
-  RenderizarIdRoute: typeof RenderizarIdRoute
-  OverlayIndexRoute: typeof OverlayIndexRoute
-  ProjetosIndexRoute: typeof ProjetosIndexRoute
-  EditorModuloIdRoute: typeof EditorModuloIdRoute
+  PagamentoRoute: typeof PagamentoRoute
+  PlanosRoute: typeof PlanosRoute
+  PrivacidadeRoute: typeof PrivacidadeRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
+  ApiPublicInfinitepayRoute: typeof ApiPublicInfinitepayRoute
+  ApiPublicPaymentPollRoute: typeof ApiPublicPaymentPollRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -182,11 +335,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin': {
       id: '/admin'
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cadastro': {
+      id: '/cadastro'
+      path: '/cadastro'
+      fullPath: '/cadastro'
+      preLoaderRoute: typeof CadastroRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/custos': {
@@ -196,77 +370,193 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CustosRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/fila': {
-      id: '/fila'
+    '/pagamento': {
+      id: '/pagamento'
+      path: '/pagamento'
+      fullPath: '/pagamento'
+      preLoaderRoute: typeof PagamentoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/planos': {
+      id: '/planos'
+      path: '/planos'
+      fullPath: '/planos'
+      preLoaderRoute: typeof PlanosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacidade': {
+      id: '/privacidade'
+      path: '/privacidade'
+      fullPath: '/privacidade'
+      preLoaderRoute: typeof PrivacidadeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/_admin': {
+      id: '/_authenticated/_admin'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedAdminRouteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/dashboard': {
+      id: '/_authenticated/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/fila': {
+      id: '/_authenticated/fila'
       path: '/fila'
       fullPath: '/fila'
-      preLoaderRoute: typeof FilaRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AuthenticatedFilaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/novo': {
-      id: '/novo'
+    '/_authenticated/novo': {
+      id: '/_authenticated/novo'
       path: '/novo'
       fullPath: '/novo'
-      preLoaderRoute: typeof NovoRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AuthenticatedNovoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/overlay/': {
-      id: '/overlay/'
+    '/_authenticated/overlay/': {
+      id: '/_authenticated/overlay/'
       path: '/overlay'
       fullPath: '/overlay/'
-      preLoaderRoute: typeof OverlayIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AuthenticatedOverlayIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/overlay/$id': {
-      id: '/overlay/$id'
+    '/_authenticated/overlay/$id': {
+      id: '/_authenticated/overlay/$id'
       path: '/overlay/$id'
       fullPath: '/overlay/$id'
-      preLoaderRoute: typeof OverlayIdRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AuthenticatedOverlayIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/projetos/': {
-      id: '/projetos/'
+    '/_authenticated/projetos/': {
+      id: '/_authenticated/projetos/'
       path: '/projetos'
       fullPath: '/projetos/'
-      preLoaderRoute: typeof ProjetosIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AuthenticatedProjetosIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/projetos/$id': {
-      id: '/projetos/$id'
+    '/_authenticated/projetos/$id': {
+      id: '/_authenticated/projetos/$id'
       path: '/projetos/$id'
       fullPath: '/projetos/$id'
-      preLoaderRoute: typeof ProjetosIdRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AuthenticatedProjetosIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/renderizar/$id': {
-      id: '/renderizar/$id'
+    '/_authenticated/renderizar/$id': {
+      id: '/_authenticated/renderizar/$id'
       path: '/renderizar/$id'
       fullPath: '/renderizar/$id'
-      preLoaderRoute: typeof RenderizarIdRouteImport
+      preLoaderRoute: typeof AuthenticatedRenderizarIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/api/public/infinitepay': {
+      id: '/api/public/infinitepay'
+      path: '/api/public/infinitepay'
+      fullPath: '/api/public/infinitepay'
+      preLoaderRoute: typeof ApiPublicInfinitepayRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/editor/$modulo/$id': {
-      id: '/editor/$modulo/$id'
+    '/api/public/payment-poll': {
+      id: '/api/public/payment-poll'
+      path: '/api/public/payment-poll'
+      fullPath: '/api/public/payment-poll'
+      preLoaderRoute: typeof ApiPublicPaymentPollRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/_admin/admin/custos': {
+      id: '/_authenticated/_admin/admin/custos'
+      path: '/admin/custos'
+      fullPath: '/admin/custos'
+      preLoaderRoute: typeof AuthenticatedAdminAdminCustosRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/_admin/admin/painel': {
+      id: '/_authenticated/_admin/admin/painel'
+      path: '/admin/painel'
+      fullPath: '/admin/painel'
+      preLoaderRoute: typeof AuthenticatedAdminAdminPainelRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/editor/$modulo/$id': {
+      id: '/_authenticated/editor/$modulo/$id'
       path: '/editor/$modulo/$id'
       fullPath: '/editor/$modulo/$id'
-      preLoaderRoute: typeof EditorModuloIdRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AuthenticatedEditorModuloIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
   }
 }
 
+interface AuthenticatedAdminRouteRouteChildren {
+  AuthenticatedAdminAdminCustosRoute: typeof AuthenticatedAdminAdminCustosRoute
+  AuthenticatedAdminAdminPainelRoute: typeof AuthenticatedAdminAdminPainelRoute
+}
+
+const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren =
+  {
+    AuthenticatedAdminAdminCustosRoute: AuthenticatedAdminAdminCustosRoute,
+    AuthenticatedAdminAdminPainelRoute: AuthenticatedAdminAdminPainelRoute,
+  }
+
+const AuthenticatedAdminRouteRouteWithChildren =
+  AuthenticatedAdminRouteRoute._addFileChildren(
+    AuthenticatedAdminRouteRouteChildren,
+  )
+
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAdminRouteRoute: typeof AuthenticatedAdminRouteRouteWithChildren
+  AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedFilaRoute: typeof AuthenticatedFilaRoute
+  AuthenticatedNovoRoute: typeof AuthenticatedNovoRoute
+  AuthenticatedOverlayIdRoute: typeof AuthenticatedOverlayIdRoute
+  AuthenticatedProjetosIdRoute: typeof AuthenticatedProjetosIdRoute
+  AuthenticatedRenderizarIdRoute: typeof AuthenticatedRenderizarIdRoute
+  AuthenticatedOverlayIndexRoute: typeof AuthenticatedOverlayIndexRoute
+  AuthenticatedProjetosIndexRoute: typeof AuthenticatedProjetosIndexRoute
+  AuthenticatedEditorModuloIdRoute: typeof AuthenticatedEditorModuloIdRoute
+}
+
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAdminRouteRoute: AuthenticatedAdminRouteRouteWithChildren,
+  AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedFilaRoute: AuthenticatedFilaRoute,
+  AuthenticatedNovoRoute: AuthenticatedNovoRoute,
+  AuthenticatedOverlayIdRoute: AuthenticatedOverlayIdRoute,
+  AuthenticatedProjetosIdRoute: AuthenticatedProjetosIdRoute,
+  AuthenticatedRenderizarIdRoute: AuthenticatedRenderizarIdRoute,
+  AuthenticatedOverlayIndexRoute: AuthenticatedOverlayIndexRoute,
+  AuthenticatedProjetosIndexRoute: AuthenticatedProjetosIndexRoute,
+  AuthenticatedEditorModuloIdRoute: AuthenticatedEditorModuloIdRoute,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AdminRoute: AdminRoute,
+  AuthRoute: AuthRoute,
+  CadastroRoute: CadastroRoute,
   CustosRoute: CustosRoute,
-  FilaRoute: FilaRoute,
-  NovoRoute: NovoRoute,
-  OverlayIdRoute: OverlayIdRoute,
-  ProjetosIdRoute: ProjetosIdRoute,
-  RenderizarIdRoute: RenderizarIdRoute,
-  OverlayIndexRoute: OverlayIndexRoute,
-  ProjetosIndexRoute: ProjetosIndexRoute,
-  EditorModuloIdRoute: EditorModuloIdRoute,
+  PagamentoRoute: PagamentoRoute,
+  PlanosRoute: PlanosRoute,
+  PrivacidadeRoute: PrivacidadeRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
+  ApiPublicInfinitepayRoute: ApiPublicInfinitepayRoute,
+  ApiPublicPaymentPollRoute: ApiPublicPaymentPollRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

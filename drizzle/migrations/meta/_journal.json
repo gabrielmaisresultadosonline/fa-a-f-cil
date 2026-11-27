@@ -1,0 +1,41 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1795743572186,
+      "tag": "0000_motionmro_customer_accounts",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1795743677114,
+      "tag": "0001_motionmro_private_assets_and_summary",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1795743880331,
+      "tag": "0002_motionmro_admin_cost_aggregates",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1795744032261,
+      "tag": "0003_motionmro_payment_check_capabilities",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1795744461332,
+      "tag": "0004_motionmro_keep_consumed_trial_ips",
+      "breakpoints": true
+    }
+  ]
+}

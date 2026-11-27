@@ -5,6 +5,7 @@ import { saveOverlay, type Overlay, type OverlayProject } from "./overlays";
 import { logCusto, type CustoMeta } from "./costs";
 import { getPrecos } from "./settings";
 import { prepareSceneHtml, validateSceneLayout } from "./sceneLayout";
+import { reserveGeneration,completeGeneration } from "./saas.functions";
 
 const meta = (p: OverlayProject, etapa: string): CustoMeta => ({ projetoId: p.id, projetoNome: p.nome, modulo: "overlay", etapa });
 
@@ -12,12 +13,10 @@ export async function runOverlayPipeline(p: OverlayProject, onUpdate: (p: Overla
   const push = async (msg: string) => { p.log.push({ t: Date.now(), msg }); await saveOverlay(p); onUpdate({ ...p }); };
   p.status = "produzindo";
   try {
+    await reserveGeneration({data:{projectId:p.id,seconds:Math.ceil(p.duracao)}});
     if (!p.transcricao) {
-      const { token } = getCreds();
-      if (!token) throw new Error("Cadastre seu token da OpenAI em Administração para transcrever a voz.");
       await push("Ouvindo e transcrevendo a voz do vídeo…");
-      p.transcricao = await transcribe(p.video, token);
-      await logCusto(meta(p, "Transcrição da voz"), { tipo: "transcricao", modelo: "whisper-1", entrada: 0, saida: 0, unidades: p.duracao / 60, usd: (p.duracao / 60) * getPrecos().transcricaoMin });
+      p.transcricao = await transcribe(p.video, p.id);
       await push(`Transcrição pronta: ${p.transcricao.length} trechos.`);
     }
     if (!p.overlays.length) {
@@ -30,19 +29,21 @@ export async function runOverlayPipeline(p: OverlayProject, onUpdate: (p: Overla
       await push(`${p.overlays.length} overlays planejados.`);
     }
     for (let i = 0; i < p.overlays.length; i++) {
-      if (p.overlays[i]!.html) continue;
-      await push(`Animando overlay ${i + 1}/${p.overlays.length}: ${p.overlays[i]!.texto}`);
-      await generateOverlay(p, i);
+      const overlay=p.overlays[i];if(!overlay||overlay.html)continue;
+      await push(`Animando overlay ${i + 1}/${p.overlays.length}: ${overlay.texto}`);
+      await generateOverlay(p, i,undefined,true);
     }
     p.status = "pronto"; await push("Overlays prontos.");
+    await completeGeneration({data:{projectId:p.id}});
   } catch (e) {
     p.status = "erro"; await push(e instanceof Error ? e.message : "Erro desconhecido");
   }
 }
 
-export async function generateOverlay(p: OverlayProject, i: number, ajuste?: string) {
+export async function generateOverlay(p: OverlayProject, i: number, ajuste?: string,inPipeline=false) {
   const o = p.overlays[i];
   if (!o) throw new Error("Overlay não encontrado.");
+  if(!inPipeline)await reserveGeneration({data:{projectId:p.id,seconds:Math.ceil(p.duracao)}});
   const ctx = `ESTILO: ${p.estilo}\n\nOVERLAY (duração ${(o.fim - o.inicio).toFixed(2)}s):\n${JSON.stringify({ ...o, html: undefined }, null, 2)}${ajuste ? `\n\nAJUSTE PEDIDO: ${ajuste}${o.html ? `\n\nCÓDIGO ATUAL:\n${o.html.slice(0, 30000)}` : ""}` : ""}`;
   let issues: string[] = [];
   for (let attempt = 0; attempt < 2; attempt++) {
@@ -50,7 +51,7 @@ export async function generateOverlay(p: OverlayProject, i: number, ajuste?: str
     const r = await callAgent({ agente: "overlay_dev", contexto, largura: p.largura, altura: p.altura }, meta(p, `Overlay ${i + 1}${attempt ? " — correção de layout" : ""}`));
     const html = prepareSceneHtml(r.text, p.largura, p.altura);
     issues = await validateSceneLayout(html, p.largura, p.altura);
-    if (!issues.length) { o.html = html; await saveOverlay(p); return; }
+    if (!issues.length) { o.html = html; await saveOverlay(p);if(!inPipeline && p.status==="pronto")await completeGeneration({data:{projectId:p.id}}); return; }
   }
   throw new Error(`Overlay ${i + 1} não aprovado: ${issues.join(" ")}`);
 }

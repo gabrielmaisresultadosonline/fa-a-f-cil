@@ -8,7 +8,7 @@ import { getProject, saveProject, type Project } from "@/lib/projects";
 import { audioCtx, recordDest } from "@/lib/sfx";
 import { download, recordRegion } from "@/lib/recorder";
 
-export const Route = createFileRoute("/renderizar/$id")({
+export const Route = createFileRoute("/_authenticated/renderizar/$id")({
   head: () => ({ meta: [
     { title: "Renderizar vídeo — MotionMRO" },
     { name: "description", content: "Transforme seu motion graphics em um arquivo de vídeo com efeitos sonoros." },

@@ -6,7 +6,7 @@ import { deleteProject, listProjects, type Project } from "@/lib/projects";
 import { ProjectRequest } from "@/components/motion/ProjectRequest";
 import { Button } from "@/components/ui/button";
 
-export const Route = createFileRoute("/projetos/")({
+export const Route = createFileRoute("/_authenticated/projetos/")({
   head: () => ({ meta: [
     { title: "Meus projetos — MotionMRO" },
     { name: "description", content: "Todos os seus vídeos e motion graphics criados com IA." },

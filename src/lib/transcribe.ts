@@ -1,4 +1,5 @@
 import type { Segmento } from "./overlays";
+import { transcribeAudio } from "./transcribe.functions";
 
 function encodeWav(data: Float32Array, rate: number) {
   const buf = new ArrayBuffer(44 + data.length * 2); const v = new DataView(buf);
@@ -20,14 +21,10 @@ export async function extractWav(video: Blob) {
   return encodeWav((await off.startRendering()).getChannelData(0), rate);
 }
 
-export async function transcribe(video: Blob, token: string): Promise<Segmento[]> {
+export async function transcribe(video: Blob, projectId: string): Promise<Segmento[]> {
   const wav = await extractWav(video);
   if (wav.size > 25 * 1024 * 1024) throw new Error("Áudio longo demais para transcrever (máx. ~13 min).");
   const fd = new FormData();
-  fd.append("file", wav, "audio.wav"); fd.append("model", "whisper-1");
-  fd.append("response_format", "verbose_json"); fd.append("timestamp_granularities[]", "segment");
-  const r = await fetch("https://api.openai.com/v1/audio/transcriptions", { method: "POST", headers: { Authorization: `Bearer ${token}` }, body: fd });
-  if (!r.ok) throw new Error(r.status === 401 ? "Token da OpenAI inválido." : `Transcrição falhou (${r.status}): ${(await r.text()).slice(0, 160)}`);
-  const j = (await r.json()) as { segments?: { start: number; end: number; text: string }[]; text?: string };
-  return (j.segments ?? []).map((s) => ({ inicio: +s.start.toFixed(2), fim: +s.end.toFixed(2), texto: s.text.trim() }));
+  fd.append("file", wav, "audio.wav");fd.append("projectId",projectId);
+  return transcribeAudio({data:fd});
 }

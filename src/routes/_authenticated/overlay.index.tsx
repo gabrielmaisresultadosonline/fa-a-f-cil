@@ -2,9 +2,13 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Trash2, Upload } from "lucide-react";
 import { AppShell } from "@/components/motion/AppShell";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { useAccount } from "@/components/motion/AccountProvider";
+import { creditCost,planFor } from "@/lib/plans";
 import { deleteOverlay, listOverlays, saveOverlay, type OverlayProject } from "@/lib/overlays";
 
-export const Route = createFileRoute("/overlay/")({
+export const Route = createFileRoute("/_authenticated/overlay/")({
   head: () => ({ meta: [
     { title: "Video Overlay IA — MotionMRO" },
     { name: "description", content: "Envie um vídeo e a IA entende a fala e cria overlays animados sincronizados." },
@@ -25,6 +29,8 @@ function meta(file: File) {
 
 function OverlayHome() {
   const nav = useNavigate();
+  const {info,sales}=useAccount();
+  const [duration,setDuration]=useState(0);
   const [file, setFile] = useState<File | null>(null);
   const [nome, setNome] = useState("");
   const [sons, setSons] = useState(true);
@@ -33,6 +39,8 @@ function OverlayHome() {
   async function criar() {
     if (!file) return;
     const m = await meta(file);
+    const max=info?.admin?600:Math.max(info?.account.trial_seconds??0,sales?(planFor(info?.account.plan??"")?.maxSeconds??0):0);
+    if(Math.ceil(m.d)>max){toast.error("Vídeo acima do limite do seu plano ou teste.");return;}
     const p: OverlayProject = { id: crypto.randomUUID(), nome: nome || file.name, criadoEm: Date.now(), atualizadoEm: Date.now(), video: file,
       largura: m.w, altura: m.h, duracao: m.d, sons, overlays: [], status: "rascunho", log: [] };
     await saveOverlay(p);
@@ -46,12 +54,13 @@ function OverlayHome() {
           <label className="mt-4 flex cursor-pointer flex-col items-center gap-2 rounded-lg border-2 border-dashed border-border bg-card/70 p-10 text-center hover:border-primary">
             <Upload className="h-6 w-6 text-primary" />
             <span className="text-sm">{file ? file.name : "Clique para escolher um vídeo (MP4, MOV, WEBM)"}</span>
-            <input type="file" accept="video/*" className="hidden" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+            <input type="file" accept="video/*" className="hidden" onChange={(e) => {const selected=e.target.files?.[0]??null;setFile(selected);setDuration(0);if(selected)void meta(selected).then((m)=>setDuration(Math.ceil(m.d))).catch(()=>toast.error("Vídeo inválido."));}} />
           </label>
           <input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome do projeto" className="mt-4 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
           <label className="mt-4 flex items-center gap-2 text-sm"><input type="checkbox" checked={sons} onChange={(e) => setSons(e.target.checked)} className="h-4 w-4 accent-primary" />Criar efeitos sonoros</label>
-          <p className="mt-2 text-xs text-muted-foreground">A IA ouve toda a fala, cria overlays animados nos momentos certos, aplica movimentos de câmera no vídeo e sons (se marcado). Precisa do token da OpenAI em Administração.</p>
-          <button disabled={!file} onClick={criar} className="mt-6 rounded-md bg-gradient-primary px-6 py-3 font-semibold text-primary-foreground shadow-glow disabled:opacity-40">Criar overlays</button>
+          <p className="mt-2 text-xs text-muted-foreground">A IA ouve toda a fala, cria overlays animados nos momentos certos, aplica movimentos de câmera no vídeo e sons (se marcado). </p>
+          {duration>0&&duration<=600&&<p className="mt-4 text-sm text-accent">{info?.admin?"Produção administrativa":(info?.account.trial_seconds??0)>=duration?`Consumo: ${duration}s de teste`:`Consumo: ${creditCost(duration)} créditos`}</p>}
+          <Button disabled={!file} onClick={()=>void criar().catch((e)=>toast.error(e.message))} className="mt-6 rounded-md bg-gradient-primary px-6 py-3 font-semibold text-primary-foreground shadow-glow disabled:opacity-40">Criar overlays</Button>
         </section>
         <aside className="space-y-2 rounded-xl border border-border bg-card p-4">
           <h3 className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Projetos de overlay</h3>

@@ -1,20 +1,22 @@
 import type { OverlayProject } from "./overlays";
 import type { Project } from "./projects";
 import { renderSfxWav } from "./sfx";
-import { getCreds, SERVIDOR_PADRAO } from "./settings";
+import { getStudioSettings, SERVIDOR_PADRAO } from "./settings";
+import { renderFetch, renderHeaders } from "./renderAuth";
 import { prepareSceneHtml } from "./sceneLayout";
 import { clipMix, type EditorProject } from "./editor";
 
 export type Engine = "ffmpeg" | "hyperframes";
-export function servidorUrl() { return (getCreds().servidor || SERVIDOR_PADRAO).replace(/\/+$/, ""); }
+export function servidorUrl() { return (getStudioSettings().servidor || SERVIDOR_PADRAO).replace(/\/+$/, ""); }
 
 export interface ServerJob {
+  expirado?:boolean;
   id: string; status: "na fila" | "renderizando" | "concluido" | "erro";
   progresso: number; etapa: string; inicio?: number; fim?: number; erro?: string;
 }
 export async function serverRequest(url: string, init?: RequestInit): Promise<ServerJob> {
   let response: Response;
-  try { response = await fetch(url, { ...init, signal: AbortSignal.timeout(15000) }); }
+  try { response = await renderFetch(url, { ...init, signal: AbortSignal.timeout(15000) }); }
   catch { throw new Error("Servidor indisponível. A renderização já enviada continua nele; o acompanhamento voltará quando reconectar."); }
   if (!response.ok) {
     const message = await response.text();
@@ -23,10 +25,12 @@ export async function serverRequest(url: string, init?: RequestInit): Promise<Se
   return response.json();
 }
 /** XHR reports actual uploaded bytes; a 202 means the server owns the durable job. */
-export function enviarJob(fd: FormData, id: string, server: string, onUpload: (percent: number) => void): Promise<ServerJob> {
+export async function enviarJob(fd: FormData, id: string, server: string, onUpload: (percent: number) => void): Promise<ServerJob> {
+  const headers=await renderHeaders();
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open("POST", `${server}/jobs/${id}`);
+    xhr.setRequestHeader("Authorization",headers.Authorization);
     xhr.upload.onprogress = (e) => { if (e.lengthComputable) onUpload(Math.round(e.loaded / e.total * 100)); };
     xhr.onerror = () => reject(new Error(`Não consegui falar com o servidor em ${server}. Confira o endereço e se ele está ligado.`));
     xhr.onabort = () => reject(new Error("Envio cancelado antes da confirmação do servidor"));
@@ -47,7 +51,7 @@ export function enviarJob(fd: FormData, id: string, server: string, onUpload: (p
 export async function prepararOverlay(p: OverlayProject, engine: Engine) {
   const overlays = p.overlays.filter((o) => o.html);
   const fd = new FormData();
-  fd.append("manifest", JSON.stringify({ nome: p.nome, engine, largura: p.largura, altura: p.altura, duracao: p.duracao, fps: 30,
+  fd.append("manifest", JSON.stringify({ projectId:p.id, nome: p.nome, engine, largura: p.largura, altura: p.altura, duracao: p.duracao, fps: 30,
     overlays: overlays.map((o) => ({ inicio: o.inicio, fim: o.fim, camera: o.camera, html: o.html ? prepareSceneHtml(o.html, p.largura, p.altura) : "" })) }));
   fd.append("video", p.video, "video");
   if (p.sons) {
@@ -66,7 +70,7 @@ export async function prepararMotion(p: Project, engine: Engine) {
   });
   if (!t) throw new Error("O projeto não tem cenas prontas para renderizar");
   const fd = new FormData();
-  fd.append("manifest", JSON.stringify({ nome: p.config.nome, engine, largura: p.config.largura, altura: p.config.altura, duracao: t, fps: 30,
+  fd.append("manifest", JSON.stringify({ projectId:p.id, nome: p.config.nome, engine, largura: p.config.largura, altura: p.config.altura, duracao: t, fps: 30,
     overlays: camadas.map(({ cena: _c, ...o }) => o) }));
   const ev = p.config.sons ? camadas.flatMap((o) => (o.cena.sons ?? []).map((s) => ({ t: o.inicio + s.t, tipo: s.tipo }))) : [];
   if (ev.length) fd.append("sfx", await renderSfxWav(ev, t), "trilha.wav");

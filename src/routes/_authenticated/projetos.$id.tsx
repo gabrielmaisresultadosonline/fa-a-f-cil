@@ -14,7 +14,7 @@ import { generateScene, runPipeline } from "@/lib/pipeline";
 import { enfileirar } from "@/lib/queue";
 import type { Engine } from "@/lib/serverRender";
 
-export const Route = createFileRoute("/projetos/$id")({
+export const Route = createFileRoute("/_authenticated/projetos/$id")({
   validateSearch: z.object({ iniciar: z.boolean().optional() }),
   head: () => ({ meta: [
     { title: "Editor de projeto — MotionMRO" },

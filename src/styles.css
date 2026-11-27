@@ -118,6 +118,7 @@
 @layer base {
   * {
     border-color: var(--color-border);
+    letter-spacing: 0;
   }
 
   body {
@@ -154,3 +155,4 @@
 .render-progress::-webkit-progress-value { background: var(--primary); transition: width .3s ease; }
 .render-progress::-moz-progress-bar { background: var(--primary); }
 @media (prefers-reduced-motion: reduce) { .render-progress::-webkit-progress-value { transition: none; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; } }

@@ -50,7 +50,7 @@ export class RenderQueue {
       await mkdir(dir, { recursive: true });
       await prepare(dir);
       await writeFile(join(dir, "manifest.json"), JSON.stringify(manifest));
-      const job = { id, status: "na fila", progresso: 0, etapa: "Aguardando renderização", criadoEm: Date.now(), nome: manifest.nome || "video", engine: manifest.engine };
+      const job = { id, userId:manifest.userId, status: "na fila", progresso: 0, etapa: "Aguardando renderização", criadoEm: Date.now(), nome: manifest.nome || "video", engine: manifest.engine };
       await this.persist(job);
       this.pump();
       return this.get(id);
@@ -91,7 +91,7 @@ export class RenderQueue {
   }
   async retry(id) {
     const job = this.get(id);
-    if (!job || job.status !== "erro") throw new Error("Somente trabalhos com erro podem ser repetidos");
+    if (!job || job.status !== "erro" || job.expirado) throw new Error("Renderização expirada: envie o projeto novamente.");
     const next = { ...job, status: "na fila", progresso: 0, etapa: "Aguardando renderização" };
     delete next.erro; delete next.inicio; delete next.fim;
     await this.persist(next);
@@ -103,6 +103,12 @@ export class RenderQueue {
     if (job?.status === "renderizando" || job?.status === "na fila" || this.pendingIds.has(id)) throw new Error("Aguarde a renderização terminar antes de remover");
     await rm(this.directory(id), { recursive: true, force: true });
     this.jobs.delete(id);
+  }
+  async expire(id) {
+    const job=this.get(id);if(!job||job.status!=="concluido")return;
+    const dir=this.directory(id);
+    for(const file of await readdir(dir))if(file!=="job.json")await rm(join(dir,file),{recursive:true,force:true});
+    await this.persist({...job,status:"erro",expirado:true,etapa:"MP4 expirado após dois dias",erro:"O vídeo foi excluído após dois dias. Envie seu projeto novamente para renderizar."});
   }
 }
 

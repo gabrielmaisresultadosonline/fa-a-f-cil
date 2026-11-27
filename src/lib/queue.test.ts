@@ -12,6 +12,12 @@ vi.mock("idb-keyval", () => ({
   keys: async () => [...mocks.storage.keys()],
 }));
 vi.mock("./projects", () => ({ getProject: mocks.getProject }));
+vi.mock("./cloudRepository",()=>({
+  saveCloud:async (_kind:string,id:string,_name:string,value:unknown)=>{mocks.storage.set(id,value);},
+  getCloud:async (_kind:string,id:string)=>mocks.storage.get(id)??null,
+  listCloud:async()=>[...mocks.storage.values()],
+  deleteCloud:async (_kind:string,id:string)=>{mocks.storage.delete(id);},
+}));
 vi.mock("./overlays", () => ({ getOverlay: mocks.getOverlay }));
 vi.mock("./serverRender", () => ({
   enviarJob: mocks.enviarJob, prepararMotion: mocks.prepararMotion,

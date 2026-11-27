@@ -1,31 +1,30 @@
-import { get, set, del, keys } from "idb-keyval";
+import { saveCloud, getCloud, deleteCloud, listCloud } from "./cloudRepository";
 import { getOverlay } from "./overlays";
 import { getProject } from "./projects";
 import { enviarJob, prepararEditor, prepararMotion, prepararOverlay, serverRequest, servidorUrl, type Engine, type ServerJob } from "./serverRender";
 import { getEditor } from "./editor";
 
 export interface Job {
+  expirado?:boolean;
   id: string; modulo: "motion" | "overlay"; alvoId: string; nome: string; engine: Engine; editorId?: string;
   status: "enviando" | "na fila" | "renderizando" | "concluido" | "erro"; criadoEm: number; inicio?: number; fim?: number;
   erro?: string | undefined; resultado?: Blob;
   servidor?: string; remoto?: boolean; progresso?: number; envio?: number; etapa?: string;
   conexao?: string | undefined;
 }
-const P = "job:";
 const uploads = new Set<string>();
 const listeners = new Set<() => void>();
 export function onQueue(f: () => void) { listeners.add(f); return () => { listeners.delete(f); }; }
 const emit = () => listeners.forEach((f) => f());
 
-export async function saveJob(j: Job) { await set(P + j.id, j); emit(); }
+export async function saveJob(j: Job) { await saveCloud("job",j.id,j.nome,j); emit(); }
 export async function removeJob(id: string) {
-  const job = await get<Job>(P + id);
+  const job = await getCloud<Job>("job",id);
   if (job?.remoto && job.servidor) await serverRequest(`${job.servidor}/jobs/${id}`, { method: "DELETE" });
-  await del(P + id); emit();
+  await deleteCloud("job",id); emit();
 }
 export async function listJobs() {
-  const ks = (await keys()).filter((k) => String(k).startsWith(P));
-  return ((await Promise.all(ks.map((k) => get<Job>(k)))).filter(Boolean) as Job[]).sort((a, b) => a.criadoEm - b.criadoEm);
+  return (await listCloud<Job>("job")).sort((a,b)=>a.criadoEm-b.criadoEm);
 }
 export async function enfileirar(j: Pick<Job, "modulo" | "alvoId" | "nome" | "engine" | "editorId">) {
   const job: Job = { ...j, id: crypto.randomUUID(), status: "enviando", criadoEm: Date.now(), servidor: servidorUrl(), progresso: 0, envio: 0, etapa: "Preparando vídeo e áudio" };

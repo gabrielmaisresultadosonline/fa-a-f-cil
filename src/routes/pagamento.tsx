@@ -1,0 +1,9 @@
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { z } from "zod";
+import { Button } from "@/components/ui/button";
+import { checkCheckout } from "@/lib/saas.functions";
+import { useAccount } from "@/components/motion/AccountProvider";
+import { pageHead } from "@/lib/head";
+export const Route=createFileRoute("/pagamento")({validateSearch:z.object({order_nsu:z.string().optional(),transaction_nsu:z.string().optional(),slug:z.string().optional()}),head:()=>pageHead("Confirmação de pagamento","Acompanhe a confirmação segura da sua compra InfinitePay."),component:Payment});
+function Payment(){const s=Route.useSearch();const {info,refresh}=useAccount();const [message,setMessage]=useState("Aguardando confirmação da InfinitePay.");useEffect(()=>{if(!info||!s.order_nsu||!s.transaction_nsu||!s.slug)return;let active=true;void checkCheckout({data:{id:s.order_nsu,transaction:s.transaction_nsu,slug:s.slug}}).then(async(r)=>{if(active)setMessage(r.paid?"Pagamento confirmado! Seus créditos foram liberados.":"Aguardando confirmação. A verificação continua em segundo plano.");if(r.paid)await refresh();}).catch((e)=>{if(active)setMessage(e.message);});return()=>{active=false;};},[info?.profile.id,s.order_nsu,s.transaction_nsu,s.slug]);return <main className="mx-auto max-w-xl space-y-6 px-5 py-16"><h1 className="text-3xl font-bold">Seu pagamento</h1><p role="status" className="text-muted-foreground">{message}</p><p className="text-sm text-muted-foreground">Você pode fechar esta janela. A notificação de pagamento será recebida no servidor.</p><Button asChild><Link to={info?"/dashboard":"/auth"}>{info?"Voltar ao estúdio":"Entrar para acompanhar"}</Link></Button></main>;}
