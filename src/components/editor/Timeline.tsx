@@ -41,6 +41,7 @@ export function Timeline({ project, time, px, tool, selectedClip, selectedTrack,
     return (
       <button key={clip.id} type="button" aria-label={`${clip.nome}, ${clip.inicio.toFixed(1)} a ${(clip.inicio + clip.duracao).toFixed(1)} segundos`}
         onPointerDown={(e) => down(e, clip, "move")} onPointerMove={move} onPointerUp={up} onPointerCancel={up}
+        onClick={(e) => e.stopPropagation()}
         onKeyDown={(e) => { if (e.key === "Delete" || e.key === "Backspace") onChange(deleteClip(project, clip.id)); }}
         data-selected={active} className={`group absolute inset-y-2 min-w-3 touch-none overflow-hidden rounded-md border bg-secondary text-left text-[11px] shadow-sm outline-none data-[selected=true]:border-primary data-[selected=true]:bg-primary/15 data-[selected=true]:ring-1 data-[selected=true]:ring-primary ${tool === "cut" ? "cursor-crosshair" : "cursor-grab active:cursor-grabbing"}`}
         style={{ left: clip.inicio * px, width: Math.max(12, clip.duracao * px) }}>
