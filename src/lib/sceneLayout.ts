@@ -1,3 +1,4 @@
+import { createId } from "./uuid";
 /** Same self-contained layout protection in preview, HTML export and server renders. */
 export function prepareSceneHtml(html: string, width: number, height: number) {
   if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) throw new Error("Formato de vídeo inválido.");
@@ -83,7 +84,7 @@ export async function validateSceneLayout(html: string, width: number, height: n
   if (!/<\/body\s*>/i.test(html) || !/<\/html\s*>/i.test(html)) return ["Documento HTML incompleto."];
   return new Promise((resolve) => {
     const frame = document.createElement("iframe");
-    const id = crypto.randomUUID();
+    const id = createId();
     frame.setAttribute("sandbox", "allow-scripts");
     Object.assign(frame.style, { position: "fixed", left: "-20000px", top: "0", width: `${width}px`, height: `${height}px`, border: "0", pointerEvents: "none" });
     const finish = (issues: string[]) => { clearTimeout(timer); window.removeEventListener("message", receive); frame.remove(); resolve(issues); };

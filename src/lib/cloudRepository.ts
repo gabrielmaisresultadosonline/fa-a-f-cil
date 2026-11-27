@@ -1,3 +1,4 @@
+import { createId } from "./uuid";
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
 
@@ -10,7 +11,7 @@ async function owner() {
 // Every blob is private and owned by the same account as its project.
 async function pack(value: unknown, prefix: string): Promise<Json> {
   if (value instanceof Blob) {
-    const path = `${prefix}/${crypto.randomUUID()}`;
+    const path = `${prefix}/${createId()}`;
     const { error } = await supabase.storage.from("customer-assets").upload(path, value, { contentType: value.type || "application/octet-stream" });
     if (error) throw error;
     return { __asset: path, mime: value.type };

@@ -1,4 +1,6 @@
 # Roadmap MotionMRO
+## Compatibilidade com acesso pelo IP
+- [x] Substituir randomUUID direto no navegador por UUID seguro compatível com HTTP; 30 testes passaram e Chromium confirmou 1.000 UUIDs únicos e validação de cena sem randomUUID em origem HTTP não segura; criação autenticada na VPS aguarda atualização pelo usuário
 ## Instalação VPS em comando único
 - [x] Corrigir acesso público ao login, banco e arquivos usando o IP da VPS e Nginx
 - [x] Executar build de produção e manter app, backend e renderização ativos com systemd

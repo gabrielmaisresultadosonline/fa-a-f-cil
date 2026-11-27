@@ -1,3 +1,4 @@
+import { createId } from "@/lib/uuid";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Sparkles } from "lucide-react";
@@ -47,7 +48,7 @@ function Novo() {
   }, [origem]);
   async function criar() {
     if(c.duracao>maxSeconds){toast.error("Duração acima do seu plano ou saldo de teste. Ative um código ou escolha um plano.");return;}
-    const p: Project = { id: crypto.randomUUID(), criadoEm: Date.now(), atualizadoEm: Date.now(), config: { ...c, nome: c.nome || c.ideia.slice(0, 40) }, pedidoOriginal: { ...c }, cenas: [], log: [], status: "rascunho",
+    const p: Project = { id: createId(), criadoEm: Date.now(), atualizadoEm: Date.now(), config: { ...c, nome: c.nome || c.ideia.slice(0, 40) }, pedidoOriginal: { ...c }, cenas: [], log: [], status: "rascunho",
       agentes: { diretor: "aguardando", roteirista: "aguardando", desenvolvedor: "aguardando", validador: "aguardando" } };
     await saveProject(p);
     nav({ to: "/projetos/$id", params: { id: p.id }, search: { iniciar: true } });

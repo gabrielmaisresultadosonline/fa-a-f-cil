@@ -1,3 +1,4 @@
+import { createId } from "./uuid";
 import { saveCloud, listCloud } from "./cloudRepository";
 import { getOverlay } from "./overlays";
 import { getProject } from "./projects";
@@ -52,7 +53,7 @@ export interface EditorProject {
 const clamp = (n: number, min: number, max: number) => Math.min(max, Math.max(min, n));
 
 function track(tipo: TrackKind, nome: string, clips: EditorClip[] = []): EditorTrack {
-  return { id: crypto.randomUUID(), tipo, nome, volume: 1, grave: 0, agudo: 0, mudo: false, clips };
+  return { id: createId(), tipo, nome, volume: 1, grave: 0, agudo: 0, mudo: false, clips };
 }
 
 export function clipUrl(clip: EditorClip) {
@@ -99,13 +100,13 @@ export async function getOrCreateEditor(modulo: EditorModule, alvoId: string): P
   if (eventos.length) {
     const blob = await renderSfxWav(eventos, duracao);
     tracks.push(track("efeitos", "Efeitos sonoros", [{
-      id: crypto.randomUUID(), assetId: crypto.randomUUID(), nome: "Efeitos criados pela IA",
+      id: createId(), assetId: createId(), nome: "Efeitos criados pela IA",
       inicio: 0, offset: 0, duracao, sourceDuration: duracao, volume: 1, grave: 0, agudo: 0, blob,
     }]));
   } else tracks.push(track("efeitos", "Efeitos sonoros"));
   tracks.push(track("musica", "Música"), track("gravacao", "Gravações"));
   const editor: EditorProject = {
-    id: crypto.randomUUID(), modulo, alvoId, nome, largura, altura, duracao,
+    id: createId(), modulo, alvoId, nome, largura, altura, duracao,
     criadoEm: Date.now(), atualizadoEm: Date.now(), tracks,
   };
   await saveEditor(editor);
@@ -120,7 +121,7 @@ export function addClip(project: EditorProject, input: {
   const duracao = Math.min(input.sourceDuration, project.duracao - inicio);
   if (!Number.isFinite(duracao) || duracao < 0.1) throw new Error("O áudio precisa ter pelo menos 0,1 segundo dentro do vídeo");
   const clip: EditorClip = {
-    id: crypto.randomUUID(), assetId: crypto.randomUUID(), nome: input.nome || "Áudio",
+    id: createId(), assetId: createId(), nome: input.nome || "Áudio",
     inicio, offset: 0, duracao, sourceDuration: input.sourceDuration,
     volume: 1, grave: 0, agudo: 0,
     ...(input.blob ? { blob: input.blob } : {}),
@@ -172,7 +173,7 @@ export function splitClip(project: EditorProject, id: string, time: number): Edi
   const found = project.tracks.flatMap((t) => t.clips).find((c) => c.id === id);
   if (!found || time <= found.inicio + 0.05 || time >= found.inicio + found.duracao - 0.05) return project;
   const leftDuration = time - found.inicio;
-  const right: EditorClip = { ...found, id: crypto.randomUUID(), nome: `${found.nome} (2)`, inicio: time, offset: found.offset + leftDuration, duracao: found.duracao - leftDuration };
+  const right: EditorClip = { ...found, id: createId(), nome: `${found.nome} (2)`, inicio: time, offset: found.offset + leftDuration, duracao: found.duracao - leftDuration };
   return { ...project, tracks: project.tracks.map((t) => ({ ...t, clips: t.clips.flatMap((c) => c.id === id ? [{ ...c, duracao: leftDuration }, right] : [c]) })) };
 }
 

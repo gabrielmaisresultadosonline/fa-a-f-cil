@@ -1,3 +1,4 @@
+import { createId } from "./uuid";
 import { callAgent } from "./ai";
 import { saveProject, type Project, type Scene } from "./projects";
 import type { CustoMeta } from "./costs";
@@ -29,7 +30,7 @@ export async function runPipeline(p: Project, onUpdate: (p: Project) => void) {
       p.agentes.roteirista = "executando"; await push("Roteirista", "Escrevendo o roteiro…");
       const r = await callAgent({ ...base, agente: "roteirista", contexto: `${brief}\n\nDIREÇÃO CRIATIVA:\n${p.direcao}` }, meta(p, "Roteirista"));
       const parsed = JSON.parse(r.text.slice(r.text.indexOf("{"), r.text.lastIndexOf("}") + 1)) as { cenas: Omit<Scene, "id">[] };
-      p.cenas = parsed.cenas.map((x) => ({ ...x, duracao: Number(x.duracao) || 4, id: crypto.randomUUID() }));
+      p.cenas = parsed.cenas.map((x) => ({ ...x, duracao: Number(x.duracao) || 4, id: createId() }));
       const total=p.cenas.reduce((sum,scene)=>sum+scene.duracao,0);
       if(!total)throw new Error("O roteiro não contém cenas.");
       p.cenas.forEach((scene)=>{scene.duracao=scene.duracao*c.duracao/total;});

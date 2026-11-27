@@ -1,3 +1,4 @@
+import { createId } from "@/lib/uuid";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Trash2, Upload } from "lucide-react";
@@ -41,7 +42,7 @@ function OverlayHome() {
     const m = await meta(file);
     const max=info?.admin?600:Math.max(info?.account.trial_seconds??0,sales?(planFor(info?.account.plan??"")?.maxSeconds??0):0);
     if(Math.ceil(m.d)>max){toast.error("Vídeo acima do limite do seu plano ou teste.");return;}
-    const p: OverlayProject = { id: crypto.randomUUID(), nome: nome || file.name, criadoEm: Date.now(), atualizadoEm: Date.now(), video: file,
+    const p: OverlayProject = { id: createId(), nome: nome || file.name, criadoEm: Date.now(), atualizadoEm: Date.now(), video: file,
       largura: m.w, altura: m.h, duracao: m.d, sons, overlays: [], status: "rascunho", log: [] };
     await saveOverlay(p);
     nav({ to: "/overlay/$id", params: { id: p.id }, search: { iniciar: true } });

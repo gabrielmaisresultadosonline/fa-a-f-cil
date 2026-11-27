@@ -1,3 +1,4 @@
+import { createId } from "./uuid";
 import { get, set, keys, del } from "idb-keyval";
 import { getPrecos } from "./settings";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,7 +16,7 @@ export function precoIA(modelo: string, entrada: number, saida: number) {
   return (entrada * m.entrada + saida * m.saida) / 1_000_000;
 }
 export async function logCusto(meta: CustoMeta, c: Omit<Custo, "id" | "t" | keyof CustoMeta>) {
-  const x: Custo = { id: crypto.randomUUID(), t: Date.now(), ...meta, ...c };
+  const x: Custo = { id: createId(), t: Date.now(), ...meta, ...c };
   await set(P + x.t + ":" + x.id, x);
 }
 export async function listCustos() {

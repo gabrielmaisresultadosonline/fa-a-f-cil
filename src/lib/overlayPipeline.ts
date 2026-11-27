@@ -1,3 +1,4 @@
+import { createId } from "./uuid";
 import { callAgent } from "./ai";
 import { getCreds } from "./settings";
 import { transcribe } from "./transcribe";
@@ -26,7 +27,7 @@ export async function runOverlayPipeline(p: OverlayProject, onUpdate: (p: Overla
       const r = await callAgent({ agente: "overlay_plano", contexto: ctx, largura: p.largura, altura: p.altura }, meta(p, "Planejamento de overlays"));
       const j = JSON.parse(r.text.slice(r.text.indexOf("{"), r.text.lastIndexOf("}") + 1)) as { estilo: string; overlays: Omit<Overlay, "id">[] };
       p.estilo = j.estilo;
-      const planned = j.overlays.map((o) => ({ ...o, inicio: Number(o.inicio), fim: Number(o.fim), id: crypto.randomUUID() })).sort((a, b) => a.inicio - b.inicio);
+      const planned = j.overlays.map((o) => ({ ...o, inicio: Number(o.inicio), fim: Number(o.fim), id: createId() })).sort((a, b) => a.inicio - b.inicio);
       p.overlays = directOverlayPlan(planned);
       await push(`${p.overlays.length} overlays planejados.`);
     }

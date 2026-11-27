@@ -1,3 +1,4 @@
+import { createId } from "./uuid";
 import { saveCloud, getCloud, deleteCloud, listCloud } from "./cloudRepository";
 import { getOverlay } from "./overlays";
 import { getProject } from "./projects";
@@ -27,7 +28,7 @@ export async function listJobs() {
   return (await listCloud<Job>("job")).sort((a,b)=>a.criadoEm-b.criadoEm);
 }
 export async function enfileirar(j: Pick<Job, "modulo" | "alvoId" | "nome" | "engine" | "editorId">) {
-  const job: Job = { ...j, id: crypto.randomUUID(), status: "enviando", criadoEm: Date.now(), servidor: servidorUrl(), progresso: 0, envio: 0, etapa: "Preparando vídeo e áudio" };
+  const job: Job = { ...j, id: createId(), status: "enviando", criadoEm: Date.now(), servidor: servidorUrl(), progresso: 0, envio: 0, etapa: "Preparando vídeo e áudio" };
   await saveJob(job);
   return enviar(job);
 }
