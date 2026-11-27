@@ -28,7 +28,7 @@ cp "$ROOT"/render-server/*.mjs "$ROOT/render-server/package.json" "$ROOT/render-
 chown -R motionmro:motionmro /opt/motionmro/render-server
 runuser -u motionmro -- env HOME=/opt/motionmro PUPPETEER_CACHE_DIR=/opt/motionmro/.cache bash -c 'cd /opt/motionmro/render-server && npm ci --omit=dev && npx --yes hyperframes@0.9.100 --help >/dev/null'
 python3 -m venv /opt/motionmro/audio-env
-/opt/motionmro/audio-env/bin/pip install 'yt-dlp' 'audio-separator[cpu]>=0.48,<1'
+/opt/motionmro/audio-env/bin/pip install --no-cache-dir 'yt-dlp' 'audio-separator[cpu]>=0.48,<1'
 chown -R motionmro:motionmro /opt/motionmro/audio-env /opt/motionmro/.cache
 install -d -m 700 /etc/motionmro
 cat > /etc/motionmro/render.env <<EOF

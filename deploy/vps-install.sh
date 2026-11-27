@@ -41,6 +41,18 @@ else
 fi
 
 echo '== 4/8 Bun, backend, yt-dlp e UVR =='
+# Somente caches recriáveis; projetos, banco e arquivos de clientes não são tocados.
+apt-get clean
+rm -rf "$APP_HOME/.cache/pip"
+AVAILABLE_KB=$(df -Pk "$APP_HOME" | awk 'NR==2 {print $4}')
+MIN_FREE_KB=$((8 * 1024 * 1024))
+echo "Espaço livre detectado: $((AVAILABLE_KB / 1024)) MB"
+df -h / /tmp "$APP_HOME"
+if (( AVAILABLE_KB < MIN_FREE_KB )); then
+  echo 'Espaço insuficiente: são necessários pelo menos 8 GB livres; recomendado: 20 GB livres.'
+  echo 'Aumente o disco da VPS e execute o mesmo comando novamente. Nenhum dado foi apagado.'
+  exit 1
+fi
 if [[ ! -x $APP_HOME/.bun/bin/bun ]]; then
   runuser -u $APP_USER -- bash -c 'curl -fsSL https://bun.sh/install | bash'
 fi
@@ -53,10 +65,11 @@ if [[ ! -x $SUPABASE_BIN ]]; then
   install -o $APP_USER -g $APP_USER /tmp/supabase $SUPABASE_BIN
   rm -f /tmp/motionmro-supabase.tar.gz /tmp/supabase
 fi
-install -d -o $APP_USER -g $APP_USER -m 700 $STATE $STATE/uvr-models $STATE/puppeteer
+install -d -o $APP_USER -g $APP_USER -m 700 $STATE $STATE/uvr-models $STATE/puppeteer $STATE/tmp
+export TMPDIR=$STATE/tmp
 if [[ ! -x $VENV/bin/audio-separator ]]; then
   runuser -u $APP_USER -- python3 -m venv $VENV
-  runuser -u $APP_USER -- $VENV/bin/pip install --quiet 'yt-dlp' 'audio-separator[cpu]>=0.48,<1' audioread
+  runuser -u $APP_USER -- env TMPDIR=$STATE/tmp $VENV/bin/pip install --no-cache-dir --quiet 'yt-dlp' 'audio-separator[cpu]>=0.48,<1' audioread
 fi
 
 echo '== 5/8 Dependências do app, FFmpeg/HyperFrames e navegador de renderização =='
@@ -97,6 +110,7 @@ HOST=127.0.0.1
 PORT=4401
 DATA_DIR=$STATE/renders
 PUPPETEER_CACHE_DIR=$STATE/puppeteer
+TMPDIR=$STATE/tmp
 RENDER_CONCURRENCY=1
 MAX_UPLOAD_MB=512
 APP_ORIGIN=$APP_ORIGIN

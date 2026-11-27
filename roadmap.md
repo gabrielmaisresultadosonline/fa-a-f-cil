@@ -4,7 +4,7 @@
 - [x] Executar build de produção e manter app, backend e renderização ativos com systemd
 - [x] Entregar uma linha de instalação/atualização, administrador seguro e documentação para motionmro.com.br depois
 - [x] Validar sintaxe, regras de firewall e separação das credenciais com testes automatizados
-- [ ] Concluir a instalação na VPS Ubuntu 26.04.1 do usuário — primeira tentativa parou na restrição de versão, já corrigida; aguardando nova execução
+- [ ] Concluir a instalação na VPS Ubuntu 26.04.1 do usuário — disco total informado: 50 GB; UVR parou por espaço, então caches foram removidos e temporários direcionados ao disco do app; aguardando nova execução
 
 ## Impacto do Overlay
 - [x] Centralizar novas composições e regenerações, alternando escurecimento e fundo sólido de tela inteira

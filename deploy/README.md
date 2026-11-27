@@ -25,10 +25,10 @@ O firewall libera somente SSH, a porta 80 do aplicativo e a porta 4400 da render
 ### Requisitos recomendados
 
 - Ubuntu 24.04 ou 26.04 LTS, arquitetura AMD64 ou ARM64.
-- 4 GB ou mais de RAM, 2 vCPUs e espaço em disco para vídeos e modelos de áudio.
+- 4 GB ou mais de RAM, 2 vCPUs, pelo menos 8 GB livres para instalar e 20 GB livres recomendados para vídeos e modelos de áudio.
 - Porta SSH disponível e liberação do provedor para as portas 80 e 4400.
 
-A separação de voz pode exigir mais memória. O primeiro download das imagens e modelos demora mais; execuções seguintes preservam banco, projetos, chaves e arquivos.
+A separação de voz pode exigir mais memória. O primeiro download das imagens e modelos demora mais; execuções seguintes preservam banco, projetos, chaves e arquivos. O instalador limpa somente caches recriáveis do apt/pip e interrompe com uma orientação clara se houver menos de 8 GB livres.
 
 ## Atualizar ou reparar
 

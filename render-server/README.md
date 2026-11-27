@@ -12,7 +12,7 @@ Renderiza **Motion IA**, **Video Overlay IA** e o **Vídeo editor** em MP4 com *
 Instale o [yt-dlp](https://github.com/yt-dlp/yt-dlp) e confirme `yt-dlp --version`. Exemplo com Python:
 
 ```bash
-python -m pip install -U yt-dlp
+python -m pip install --no-cache-dir -U yt-dlp
 ```
 
 Use somente músicas próprias, autorizadas ou com licença compatível. O servidor aceita apenas links HTTP/HTTPS de `youtube.com`, `music.youtube.com` e `youtu.be`, sem playlist, com limite de 300 MB. O áudio é convertido para WAV e guardado em `data/media/<id>/original.wav`.
@@ -24,10 +24,10 @@ O repositório UVR indicado no projeto é principalmente uma interface gráfica;
 
 ```bash
 # CPU
-python -m pip install "audio-separator[cpu]"
+python -m pip install --no-cache-dir "audio-separator[cpu]"
 
 # NVIDIA/CUDA: siga a orientação do audio-separator para sua versão de CUDA
-python -m pip install "audio-separator[gpu]"
+python -m pip install --no-cache-dir "audio-separator[gpu]"
 ```
 
 Confirme `audio-separator --help`. O modelo padrão é `UVR-MDX-NET-Inst_HQ_4.onnx`; na primeira separação ele pode ser baixado e o processo pode levar vários minutos. Configure `UVR_MODEL` para outro modelo compatível ou `AUDIO_SEPARATOR_COMMAND` se o executável tiver outro nome/caminho. O instrumental fica em `data/media/<id>/instrumental.wav`; o original nunca é sobrescrito e pode ser reativado no editor.

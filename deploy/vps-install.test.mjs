@@ -22,6 +22,23 @@ test('VPS exposes app and authenticated render but blocks Docker backend ports',
   assert.doesNotMatch(script, /ufw allow 5432[0-9]/);
 });
 
+test('VPS checks disk space and avoids duplicate Python package caches', () => {
+  assert.match(script, /MIN_FREE_KB=\$\(\(8 \* 1024 \* 1024\)\)/);
+  assert.match(script, /pip install --no-cache-dir/);
+  assert.match(script, /apt-get clean/);
+  assert.match(script, /APP_HOME\/\.cache\/pip/);
+  assert.match(script, /TMPDIR=\$STATE\/tmp/);
+});
+
+test('every Ubuntu Python installer avoids package caches', () => {
+  for (const file of ['vps-install.sh', 'install-vps-ubuntu.sh', 'install-ubuntu.sh']) {
+    const content = readFileSync(new URL(`./${file}`, import.meta.url), 'utf8');
+    const pipLines = content.split('\n').filter((line) => line.includes('pip install') || line.includes('pip" install'));
+    assert.ok(pipLines.length > 0, `${file} deve instalar os recursos de áudio`);
+    for (const line of pipLines) assert.match(line, /--no-cache-dir/, file);
+  }
+});
+
 test('VPS browser and render receive the detected public IP', () => {
   assert.match(script, /MRO_PUBLIC_AUTH_URL=\$APP_ORIGIN/);
   assert.match(script, /MRO_RENDER_URL=\$RENDER_ORIGIN/);
