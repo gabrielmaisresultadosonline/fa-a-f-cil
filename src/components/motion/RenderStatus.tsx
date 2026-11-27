@@ -46,7 +46,6 @@ export function RenderStatus({ alvoId }: { alvoId: string }) {
     <div className="flex flex-wrap items-center gap-3">
       {job.status === "concluido" ? <CheckCircle2 className="h-4 w-4 text-success" /> : job.status === "erro" ? <AlertTriangle className="h-4 w-4 text-destructive" /> : <Loader2 className="h-4 w-4 animate-spin text-primary" />}
       <h2 className="text-sm font-semibold">{job.status === "concluido" ? "Vídeo salvo no servidor" : job.status === "enviando" ? "Enviando projeto" : job.status === "erro" ? "Renderização com erro" : "Renderização em segundo plano"}</h2>
-      <span className="text-xs text-muted-foreground">{job.engine === "ffmpeg" ? "FFmpeg" : "HyperFrames"}</span>
       <div className="ml-auto flex flex-wrap items-center gap-2">
         <JobDownload job={job} />
         {job.status === "erro" && <JobRetry job={job} />}

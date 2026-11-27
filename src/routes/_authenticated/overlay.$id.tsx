@@ -9,9 +9,7 @@ import { Button } from "@/components/ui/button";
 import { SfxToggle } from "@/components/motion/SfxToggle";
 import { getOverlay, saveOverlay, type OverlayProject } from "@/lib/overlays";
 import { generateOverlay, runOverlayPipeline } from "@/lib/overlayPipeline";
-import { audioCtx, recordDest, scheduleSons } from "@/lib/sfx";
-import { download, recordRegion } from "@/lib/recorder";
-import type { Engine } from "@/lib/serverRender";
+import { scheduleSons } from "@/lib/sfx";
 import { enfileirar } from "@/lib/queue";
 import { prepareSceneHtml } from "@/lib/sceneLayout";
 
@@ -48,15 +46,12 @@ function OverlayEditor() {
   const [active, setActive] = useState(-1);
   const [sel, setSel] = useState(0);
   const [ajuste, setAjuste] = useState("");
-  const [rec, setRec] = useState(false);
-  const [modo, setModo] = useState<"navegador" | Engine>("ffmpeg");
   const [srv, setSrv] = useState(false);
   const [scale, setScale] = useState(0.4);
   const started = useRef(false);
   const video = useRef<HTMLVideoElement>(null);
   const box = useRef<HTMLDivElement>(null);
   const stage = useRef<HTMLDivElement>(null);
-  const wired = useRef(false);
   const url = useMemo(() => (p ? URL.createObjectURL(p.video) : ""), [p?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function start(proj: OverlayProject) { setBusy(true); await runOverlayPipeline(proj, setP); setBusy(false); }
@@ -91,32 +86,15 @@ function OverlayEditor() {
     return scheduleSons(cur.sons, p.sons, (video.current?.currentTime ?? cur.inicio) - cur.inicio);
   }, [cur, p]);
 
-  function wireAudio() {
-    if (wired.current || !video.current) return;
-    const c = audioCtx(); const src = c.createMediaElementSource(video.current);
-    src.connect(c.destination); src.connect(recordDest()); wired.current = true;
-  }
-
   if (p === undefined) return <AppShell title="Carregando…"><div /></AppShell>;
   if (p === null) return <AppShell title="Projeto não encontrado"><Link to="/overlay" className="text-primary">Voltar</Link></AppShell>;
   const o = p.overlays[sel];
 
-  async function gravar() {
-    if (!p || !stage.current || !video.current) return;
-    const v = video.current; v.pause(); setRec(true);
-    try {
-      wireAudio();
-      const { blob, ext } = await recordRegion(stage.current, p.duracao, recordDest().stream, async () => { v.currentTime = 0; await v.play(); });
-      download(blob, `${p.nome.replace(/\W+/g, "_")}_overlay.${ext}`); toast.success(`Vídeo ${ext.toUpperCase()} gerado`);
-    } catch (e) { toast.error(e instanceof Error ? e.message : "Gravação cancelada"); }
-    v.pause(); setRec(false);
-  }
   async function renderizar() {
     if (!p) return;
-    if (modo === "navegador") return gravar();
     setSrv(true);
     try {
-      await enfileirar({ modulo: "overlay", alvoId: p.id, nome: p.nome, engine: modo });
+      await enfileirar({ modulo: "overlay", alvoId: p.id, nome: p.nome, engine: "ffmpeg" });
       toast.success("Envio confirmado. Pode fechar o navegador; o servidor continua renderizando.");
     } catch (e) { toast.error(e instanceof Error ? e.message : "Erro ao enviar"); }
     finally { setSrv(false); }
@@ -132,19 +110,16 @@ function OverlayEditor() {
     <AppShell title={p.nome} actions={<>
       <Link to="/editor/$modulo/$id" params={{ modulo: "overlay", id: p.id }} disabled={!p.overlays.some((x) => x.html)} className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-40"><SlidersHorizontal className="h-4 w-4" />Abrir vídeo editor</Link>
       {(p.status === "erro" || (p.status === "rascunho" && !busy)) && <button onClick={() => start(p)} className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm"><RefreshCw className="h-4 w-4" />{p.status === "erro" ? "Continuar" : "Iniciar"}</button>}
-      <select value={modo} onChange={(e) => setModo(e.target.value as typeof modo)} className="rounded-md border border-input bg-background px-2 py-2 text-sm">
-        <option value="ffmpeg">FFmpeg (servidor)</option><option value="hyperframes">HyperFrames (servidor)</option><option value="navegador">Gravar no navegador</option>
-      </select>
-      <Button onClick={renderizar} disabled={busy || rec || srv || !p.overlays.some((x) => x.html)}>
-        {rec || srv ? <Loader2 className="animate-spin" /> : <Circle className="fill-current" />}{rec ? "Gravando…" : srv ? "Enviando…" : "Renderizar agora"}</Button>
-      <Button variant="outline" disabled={modo === "navegador" || busy || srv || !p.overlays.some((x) => x.html)} onClick={renderizar}>Adicionar à fila</Button>
+      <Button onClick={renderizar} disabled={busy || srv || !p.overlays.some((x) => x.html)}>
+        {srv ? <Loader2 className="animate-spin" /> : <Circle className="fill-current" />}{srv ? "Enviando…" : "Renderizar agora"}</Button>
+      <Button variant="outline" disabled={busy || srv || !p.overlays.some((x) => x.html)} onClick={renderizar}>Adicionar à fila</Button>
     </>}>
       <RenderStatus alvoId={id} />
       <div className="grid gap-6 xl:grid-cols-[1fr_320px]">
         <section className="flex min-w-0 flex-col gap-3">
           <div ref={box} className="grid h-[60vh] min-h-[320px] place-items-center overflow-hidden rounded-lg bg-stage grid-lines">
             <div ref={stage} style={{ width: p.largura * scale, height: p.altura * scale }} className="relative overflow-hidden bg-background">
-              <video ref={video} src={url} controls={!rec} onPlay={wireAudio} playsInline className="absolute inset-0 h-full w-full object-cover"
+              <video ref={video} src={url} controls playsInline className="absolute inset-0 h-full w-full object-cover"
                 style={camera(cur?.camera, cur ? cur.fim - cur.inicio : 0)} />
               {cur?.html && (
                 <iframe key={cur.id} title="overlay" srcDoc={prepareSceneHtml(cur.html, p.largura, p.altura)} sandbox="allow-scripts" className="pointer-events-none absolute left-0 top-0"
@@ -156,7 +131,6 @@ function OverlayEditor() {
             <SfxToggle on={p.sons} onChange={async (v) => { p.sons = v; await saveOverlay(p); setP({ ...p }); }} />
             <span className="ml-auto font-mono text-xs text-muted-foreground">{p.overlays.filter((x) => x.html).length}/{p.overlays.length} overlays · {p.duracao.toFixed(1)}s</span>
           </div>
-          {!rec && modo === "navegador" && <p className="text-xs text-muted-foreground">A gravação no navegador precisa desta aba aberta e visível.</p>}
           <div className="flex gap-2 overflow-x-auto rounded-lg border border-border bg-card p-3">
             {p.overlays.length === 0 && <span className="text-sm text-muted-foreground">{busy ? "A IA está ouvindo o vídeo…" : "Sem overlays ainda."}</span>}
             {p.overlays.map((x, i) => (

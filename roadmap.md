@@ -2,10 +2,15 @@
 ## Domínio e HTTPS na VPS
 - [ ] Apontar motionmro.com.br e www para 189.24.24.252; nameservers públicos atuais são a.auto.dns.br e b.auto.dns.br, diferentes dos informados
 - [ ] Executar deploy/configure-domain.sh após o DNS propagar; script preparado, mas não testado numa VPS real
+## Tela do editor e renderização
+- [x] Remover do editor o seletor "Meu navegador/Servidor", o botão e o diálogo do auxiliar; download sempre pelo servidor
+- [x] Remover os seletores de motor (FFmpeg/HyperFrames) e a página de gravação no navegador; renderização sempre FFmpeg no servidor
+- [x] Esconder a etiqueta do motor na fila e no status de renderização
+
 ## Download de música do YouTube
 - [ ] Importar cookies pelo terminal enquanto o acesso for por IP/HTTP; wrapper seguro preparado, sem liberar sessões em HTTP aberto; importação fictícia criptografada e 34 testes passaram
 - [ ] Adicionar envio, ativação e remoção de cookies no admin com verificação de administrador e armazenamento privado criptografado; nunca incluir cookies no código
-- [ ] Integrar auxiliar no computador do usuário com sessão local e envio somente do áudio; não publicar o cookies.txt enviado
+- [x] Auxiliar no computador do usuário removido do produto a pedido: download sempre pelo servidor com cookies do admin; sessão local nunca publicada
 - [ ] Conferir formato do arquivo enviado sem expor dados; orientar renovação da sessão compartilhada no chat
 - [x] Ativar Node/EJS, atualizar yt-dlp nos três instaladores e no atualizador, proteger cookies e testar download/conversão: 27 testes passaram; aviso de runtime ausente no teste real do link informado
 - [ ] Confirmar download real na VPS com cookies ativos + provedor de tokens PO (rodar update-vps.sh e test-youtube.sh e ler o resultado)

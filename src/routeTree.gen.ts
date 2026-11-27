@@ -27,7 +27,6 @@ import { Route as AuthenticatedOverlayIndexRouteImport } from './routes/_authent
 import { Route as AuthenticatedOverlayIdRouteImport } from './routes/_authenticated/overlay.$id'
 import { Route as AuthenticatedProjetosIndexRouteImport } from './routes/_authenticated/projetos.index'
 import { Route as AuthenticatedProjetosIdRouteImport } from './routes/_authenticated/projetos.$id'
-import { Route as AuthenticatedRenderizarIdRouteImport } from './routes/_authenticated/renderizar.$id'
 import { Route as ApiPublicInfinitepayRouteImport } from './routes/api/public/infinitepay'
 import { Route as ApiPublicPaymentPollRouteImport } from './routes/api/public/payment-poll'
 import { Route as AuthenticatedAdminAdminCustosRouteImport } from './routes/_authenticated/_admin/admin.custos'
@@ -124,12 +123,6 @@ const AuthenticatedProjetosIdRoute = AuthenticatedProjetosIdRouteImport.update({
   path: '/projetos/$id',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedRenderizarIdRoute =
-  AuthenticatedRenderizarIdRouteImport.update({
-    id: '/renderizar/$id',
-    path: '/renderizar/$id',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
 const ApiPublicInfinitepayRoute = ApiPublicInfinitepayRouteImport.update({
   id: '/api/public/infinitepay',
   path: '/api/public/infinitepay',
@@ -174,7 +167,6 @@ export interface FileRoutesByFullPath {
   '/novo': typeof AuthenticatedNovoRoute
   '/overlay/$id': typeof AuthenticatedOverlayIdRoute
   '/projetos/$id': typeof AuthenticatedProjetosIdRoute
-  '/renderizar/$id': typeof AuthenticatedRenderizarIdRoute
   '/api/public/infinitepay': typeof ApiPublicInfinitepayRoute
   '/api/public/payment-poll': typeof ApiPublicPaymentPollRoute
   '/overlay/': typeof AuthenticatedOverlayIndexRoute
@@ -198,7 +190,6 @@ export interface FileRoutesByTo {
   '/novo': typeof AuthenticatedNovoRoute
   '/overlay/$id': typeof AuthenticatedOverlayIdRoute
   '/projetos/$id': typeof AuthenticatedProjetosIdRoute
-  '/renderizar/$id': typeof AuthenticatedRenderizarIdRoute
   '/api/public/infinitepay': typeof ApiPublicInfinitepayRoute
   '/api/public/payment-poll': typeof ApiPublicPaymentPollRoute
   '/overlay': typeof AuthenticatedOverlayIndexRoute
@@ -225,7 +216,6 @@ export interface FileRoutesById {
   '/_authenticated/novo': typeof AuthenticatedNovoRoute
   '/_authenticated/overlay/$id': typeof AuthenticatedOverlayIdRoute
   '/_authenticated/projetos/$id': typeof AuthenticatedProjetosIdRoute
-  '/_authenticated/renderizar/$id': typeof AuthenticatedRenderizarIdRoute
   '/api/public/infinitepay': typeof ApiPublicInfinitepayRoute
   '/api/public/payment-poll': typeof ApiPublicPaymentPollRoute
   '/_authenticated/overlay/': typeof AuthenticatedOverlayIndexRoute
@@ -251,7 +241,6 @@ export interface FileRouteTypes {
     | '/novo'
     | '/overlay/$id'
     | '/projetos/$id'
-    | '/renderizar/$id'
     | '/api/public/infinitepay'
     | '/api/public/payment-poll'
     | '/overlay/'
@@ -275,7 +264,6 @@ export interface FileRouteTypes {
     | '/novo'
     | '/overlay/$id'
     | '/projetos/$id'
-    | '/renderizar/$id'
     | '/api/public/infinitepay'
     | '/api/public/payment-poll'
     | '/overlay'
@@ -301,7 +289,6 @@ export interface FileRouteTypes {
     | '/_authenticated/novo'
     | '/_authenticated/overlay/$id'
     | '/_authenticated/projetos/$id'
-    | '/_authenticated/renderizar/$id'
     | '/api/public/infinitepay'
     | '/api/public/payment-poll'
     | '/_authenticated/overlay/'
@@ -454,13 +441,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProjetosIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/renderizar/$id': {
-      id: '/_authenticated/renderizar/$id'
-      path: '/renderizar/$id'
-      fullPath: '/renderizar/$id'
-      preLoaderRoute: typeof AuthenticatedRenderizarIdRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/api/public/infinitepay': {
       id: '/api/public/infinitepay'
       path: '/api/public/infinitepay'
@@ -522,7 +502,6 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedNovoRoute: typeof AuthenticatedNovoRoute
   AuthenticatedOverlayIdRoute: typeof AuthenticatedOverlayIdRoute
   AuthenticatedProjetosIdRoute: typeof AuthenticatedProjetosIdRoute
-  AuthenticatedRenderizarIdRoute: typeof AuthenticatedRenderizarIdRoute
   AuthenticatedOverlayIndexRoute: typeof AuthenticatedOverlayIndexRoute
   AuthenticatedProjetosIndexRoute: typeof AuthenticatedProjetosIndexRoute
   AuthenticatedEditorModuloIdRoute: typeof AuthenticatedEditorModuloIdRoute
@@ -535,7 +514,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedNovoRoute: AuthenticatedNovoRoute,
   AuthenticatedOverlayIdRoute: AuthenticatedOverlayIdRoute,
   AuthenticatedProjetosIdRoute: AuthenticatedProjetosIdRoute,
-  AuthenticatedRenderizarIdRoute: AuthenticatedRenderizarIdRoute,
   AuthenticatedOverlayIndexRoute: AuthenticatedOverlayIndexRoute,
   AuthenticatedProjetosIndexRoute: AuthenticatedProjetosIndexRoute,
   AuthenticatedEditorModuloIdRoute: AuthenticatedEditorModuloIdRoute,

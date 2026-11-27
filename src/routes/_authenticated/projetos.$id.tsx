@@ -12,7 +12,6 @@ import { SfxToggle } from "@/components/motion/SfxToggle";
 import { AGENTES, buildFullHtml, getProject, saveProject, type Project, type AgentStatus } from "@/lib/projects";
 import { generateScene, runPipeline } from "@/lib/pipeline";
 import { enfileirar } from "@/lib/queue";
-import type { Engine } from "@/lib/serverRender";
 
 export const Route = createFileRoute("/_authenticated/projetos/$id")({
   validateSearch: z.object({ iniciar: z.boolean().optional() }),
@@ -44,7 +43,6 @@ function Editor() {
   const [ajuste, setAjuste] = useState("");
   const [busy, setBusy] = useState(false);
   const started = useRef(false);
-  const [engine, setEngine] = useState<Engine>("ffmpeg");
   const [enviando, setEnviando] = useState(false);
 
   const start = useCallback(async (proj: Project) => {
@@ -82,7 +80,7 @@ function Editor() {
   async function renderizar() {
     if (!p) return;
     setEnviando(true);
-    try { await enfileirar({ modulo: "motion", alvoId: p.id, nome: p.config.nome, engine }); toast.success("Envio confirmado. Pode fechar o navegador; o servidor continua renderizando."); }
+    try { await enfileirar({ modulo: "motion", alvoId: p.id, nome: p.config.nome, engine: "ffmpeg" }); toast.success("Envio confirmado. Pode fechar o navegador; o servidor continua renderizando."); }
     catch (e) { toast.error(e instanceof Error ? e.message : "Erro ao enviar"); }
     finally { setEnviando(false); }
   }
@@ -93,8 +91,6 @@ function Editor() {
       <Link to="/editor/$modulo/$id" params={{ modulo: "motion", id: p.id }} disabled={!ready.length} className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-40"><SlidersHorizontal className="h-4 w-4" />Abrir vídeo editor</Link>
       {(p.status === "erro" || (p.status === "rascunho" && !busy)) && <button onClick={() => start(p)} disabled={busy} className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm hover:border-primary"><RefreshCw className="h-4 w-4" />{p.status === "erro" ? "Continuar produção" : "Iniciar produção"}</button>}
       <button onClick={exportar} disabled={!ready.length} className="inline-flex items-center gap-2 rounded-md bg-gradient-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-40"><Download className="h-4 w-4" />Exportar HTML</button>
-      <Link to="/renderizar/$id" params={{ id: p.id }} disabled={!ready.length} className="inline-flex items-center gap-2 rounded-md border border-primary px-4 py-2 text-sm font-semibold text-primary"><Film className="h-4 w-4" />Gravar no navegador</Link>
-      <select value={engine} onChange={(e) => setEngine(e.target.value as Engine)} className="rounded-md border border-input bg-background px-2 py-2 text-sm"><option value="ffmpeg">FFmpeg</option><option value="hyperframes">HyperFrames</option></select>
       <Button disabled={!ready.length || busy || enviando} onClick={renderizar}>{enviando ? <Loader2 className="animate-spin" /> : <Film />}{enviando ? "Enviando…" : "Renderizar vídeo"}</Button>
       <Button variant="outline" disabled={!ready.length || busy || enviando} onClick={renderizar}><ListPlus />Adicionar à fila</Button>
     </>}>

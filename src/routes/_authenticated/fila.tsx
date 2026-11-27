@@ -39,7 +39,7 @@ function Fila() {
               <I className={`h-5 w-5 shrink-0 ${COR[j.status]}`} />
                <div className="min-w-0 basis-[calc(100%-3rem)] sm:basis-0 sm:flex-1">
                 <div className="truncate font-medium">{j.nome}</div>
-                <div className="font-mono text-xs text-muted-foreground">{j.modulo === "motion" ? "Motion IA" : "Video Overlay"} · {j.engine === "ffmpeg" ? "FFmpeg" : "HyperFrames"} · {j.status}{j.inicio ? ` · ${dur(j)}` : ""}</div>
+                <div className="font-mono text-xs text-muted-foreground">{j.modulo === "motion" ? "Motion IA" : "Video Overlay"} · {j.status}{j.inicio ? ` · ${dur(j)}` : ""}</div>
                 {j.erro && <div className="mt-1 text-xs text-destructive">{j.erro}</div>}
                  {j.conexao && <div className="mt-1 text-xs text-destructive">{j.conexao}</div>}
                  {(j.status === "enviando" || j.status === "renderizando" || j.status === "na fila" || j.status === "concluido") && <div className="mt-3"><JobProgress job={j} /></div>}

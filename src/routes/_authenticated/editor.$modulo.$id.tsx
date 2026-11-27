@@ -1,23 +1,21 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, AudioLines, ChevronDown, Film, Loader2, Mic2, Monitor, MousePointer2, Music2, Pause, Play, Scissors, Split, Square, Trash2, Youtube } from "lucide-react";
+import { ArrowLeft, AudioLines, ChevronDown, Film, Loader2, Mic2, MousePointer2, Music2, Pause, Play, Scissors, Split, Square, Trash2, Youtube } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/motion/AppShell";
 import { RenderStatus } from "@/components/motion/RenderStatus";
 import { Timeline } from "@/components/editor/Timeline";
 import { VideoPreview } from "@/components/editor/VideoPreview";
-import { LocalHelperDialog } from "@/components/editor/LocalHelperDialog";
 import { MusicTrimmer } from "@/components/editor/MusicTrimmer";
 import { peaksFromBuffer } from "@/lib/waveform";
 import { Button } from "@/components/ui/button";
 import { addClip, deleteClip, findClip, getOrCreateEditor, saveEditor, setClipWindow, splitClip, updateClip, updateTrack, vocalsRemovedFor, type EditorModule, type EditorProject } from "@/lib/editor";
 import { EditorAudioEngine } from "@/lib/editorAudio";
-import { audioDuration, downloadYoutubeAudio, separateVocals, uploadLocalAudio } from "@/lib/media";
-import { downloadFromMyBrowser } from "@/lib/localYoutube";
+import { audioDuration, downloadYoutubeAudio, separateVocals } from "@/lib/media";
 import { getProject, type Project } from "@/lib/projects";
 import { getOverlay, type OverlayProject } from "@/lib/overlays";
 import { enfileirar } from "@/lib/queue";
-import { servidorUrl, type Engine } from "@/lib/serverRender";
+import { servidorUrl } from "@/lib/serverRender";
 
 export const Route = createFileRoute("/_authenticated/editor/$modulo/$id")({
   head: () => ({ meta: [
@@ -54,13 +52,10 @@ function VideoEditor() {
   const [tool, setTool] = useState<"select" | "cut">("select");
   const [selectedClip, setSelectedClip] = useState<string>();
   const [selectedTrack, setSelectedTrack] = useState<string>();
-  const [engine, setEngine] = useState<Engine>("ffmpeg");
   const [px, setPx] = useState(18);
   const [busy, setBusy] = useState("");
   const [progress, setProgress] = useState<number | null>(null);
   const [youtube, setYoutube] = useState("");
-  const [youtubeSource, setYoutubeSource] = useState<"local" | "server">("server");
-  const [helperOpen, setHelperOpen] = useState(false);
   const [youtubeOpen, setYoutubeOpen] = useState(false);
   const [peaks, setPeaks] = useState<Record<string, Float32Array>>({});
   const peaksLoading = useRef(new Set<string>());
@@ -217,9 +212,7 @@ function VideoEditor() {
     if (!editor || !youtube.trim()) return;
     pause(); setBusy("youtube"); setProgress(null);
     try {
-      const media = youtubeSource === "local"
-        ? await uploadLocalAudio(await downloadFromMyBrowser(youtube.trim()))
-        : await downloadYoutubeAudio(youtube.trim(), setProgress);
+      const media = await downloadYoutubeAudio(youtube.trim(), setProgress);
       const current = editorRef.current;
       if (!current) return;
       const next = addClip(current, { nome: media.nome, sourceDuration: media.duracao, inicio: timeRef.current, mediaId: media.id, servidor: servidorUrl(), stem: "original", tipo: "musica", novaFaixa: true });
@@ -253,7 +246,7 @@ function VideoEditor() {
     pause(); setSending(true);
     try {
       await saveEditor(editor);
-      await enfileirar({ modulo, alvoId: id, nome: editor.nome, engine, editorId: editor.id });
+      await enfileirar({ modulo, alvoId: id, nome: editor.nome, engine: "ffmpeg", editorId: editor.id });
       toast.success("Envio confirmado. O servidor renderiza todas as camadas mesmo com o navegador fechado.");
     } catch (e) { toast.error(e instanceof Error ? e.message : "Erro ao enviar a renderização"); }
     finally { setSending(false); }
@@ -282,11 +275,9 @@ function VideoEditor() {
   return (
     <AppShell title={`Vídeo editor · ${editor.nome}`} actions={<>
       <Link to={backTo} params={{ id }} className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm"><ArrowLeft className="h-4 w-4" />Voltar à prévia</Link>
-      <select aria-label="Motor de renderização" value={engine} onChange={(e) => setEngine(e.target.value as Engine)} className="rounded-md border border-input bg-background px-2 py-2 text-sm"><option value="ffmpeg">FFmpeg</option><option value="hyperframes">HyperFrames</option></select>
       <Button onClick={render} disabled={sending || recording}>{sending ? <Loader2 className="animate-spin" /> : <Film />}{sending ? "Enviando…" : "Renderizar vídeo"}</Button>
     </>}>
       <RenderStatus alvoId={id} />
-      <LocalHelperDialog open={helperOpen} onOpenChange={setHelperOpen} />
       <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1fr)_310px]">
         <div className="min-w-0 space-y-4">
           <VideoPreview editor={editor} motion={motion} overlay={overlay} time={time} playing={playing} run={run} videoRef={videoRef} videoTrack={editor.tracks.find((t) => t.tipo === "video")} />
@@ -308,13 +299,9 @@ function VideoEditor() {
               <Youtube className="h-4 w-4 text-[#ff0033]" />{busy === "youtube" ? `Baixando do YouTube ${progress ?? 0}%` : "Música do YouTube"}<ChevronDown className={`h-4 w-4 transition-transform ${youtubeOpen ? "rotate-180" : ""}`} />
             </button>
             {(youtubeOpen || busy === "youtube") && <div className="md:col-span-2">
-              <div className="mb-2 flex flex-wrap items-center gap-2">
-                <select aria-label="Origem do download do YouTube" value={youtubeSource} disabled={busy === "youtube"} onChange={(e) => setYoutubeSource(e.target.value === "server" ? "server" : "local")} className="rounded-md border border-input bg-background px-3 py-2 text-sm"><option value="local">Meu navegador</option><option value="server">Servidor</option></select>
-                <Button size="sm" variant="ghost" onClick={() => setHelperOpen(true)}><Monitor />Auxiliar no computador</Button>
-              </div>
               <div className="flex flex-col gap-2 sm:flex-row"><div className="relative min-w-0 flex-1"><Youtube className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" /><input value={youtube} onChange={(e) => setYoutube(e.target.value)} placeholder="Cole o link da música no YouTube" className={`${field} pl-9`} /></div><Button variant="outline" onClick={addYoutube} disabled={!youtube.trim() || busy === "youtube"}>{busy === "youtube" ? <Loader2 className="animate-spin" /> : <Music2 />}{busy === "youtube" ? (progress === null ? "Iniciando..." : progress >= 92 ? `Convertendo ${progress}%` : `Baixando ${progress}%`) : "Baixar e adicionar"}</Button></div>
-              {busy === "youtube" && youtubeSource === "server" && <div className="space-y-1"><div className="h-1.5 overflow-hidden rounded-full bg-muted"><div className="h-full bg-primary transition-all" style={{ width: `${progress ?? 0}%` }} /></div><p className="text-xs text-muted-foreground">{progress === null ? "Preparando o download..." : `${progress}% concluído`}</p></div>}
-              <p className="mt-2 text-xs text-muted-foreground">{youtubeSource === "local" ? "Sessão somente no seu computador · envio somente do áudio." : "Download no servidor, sem acesso ao navegador do seu computador."} Baixe somente conteúdo próprio ou autorizado.</p>
+              {busy === "youtube" && <div className="space-y-1"><div className="h-1.5 overflow-hidden rounded-full bg-muted"><div className="h-full bg-primary transition-all" style={{ width: `${progress ?? 0}%` }} /></div><p className="text-xs text-muted-foreground">{progress === null ? "Preparando o download..." : `${progress}% concluído`}</p></div>}
+              <p className="mt-2 text-xs text-muted-foreground">Baixe somente conteúdo próprio ou autorizado.</p>
             </div>}
           </section>
 
