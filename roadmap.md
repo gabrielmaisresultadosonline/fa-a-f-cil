@@ -1,5 +1,7 @@
 # Roadmap MotionMRO
 ## Download de música do YouTube
+- [ ] Integrar auxiliar no computador do usuário com sessão local e envio somente do áudio; não publicar o cookies.txt enviado
+- [ ] Conferir formato do arquivo enviado sem expor dados; orientar renovação da sessão compartilhada no chat
 - [x] Ativar Node/EJS, atualizar yt-dlp nos três instaladores e no atualizador, proteger cookies e testar download/conversão: 27 testes passaram; aviso de runtime ausente no teste real do link informado
 - [ ] Confirmar download real na VPS — link informado continua exigindo confirmação do YouTube mesmo com Node/EJS; depende da atualização e de cookies privados válidos ou uso de arquivo autorizado
 ## Compatibilidade com acesso pelo IP

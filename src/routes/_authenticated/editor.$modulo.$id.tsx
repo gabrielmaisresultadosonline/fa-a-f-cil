@@ -1,15 +1,17 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, AudioLines, Film, Loader2, Mic2, MousePointer2, Music2, Pause, Play, Scissors, Split, Square, Trash2, Youtube } from "lucide-react";
+import { ArrowLeft, AudioLines, Film, Loader2, Mic2, Monitor, MousePointer2, Music2, Pause, Play, Scissors, Split, Square, Trash2, Youtube } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/motion/AppShell";
 import { RenderStatus } from "@/components/motion/RenderStatus";
 import { Timeline } from "@/components/editor/Timeline";
 import { VideoPreview } from "@/components/editor/VideoPreview";
+import { LocalHelperDialog } from "@/components/editor/LocalHelperDialog";
 import { Button } from "@/components/ui/button";
 import { addClip, deleteClip, findClip, getOrCreateEditor, saveEditor, splitClip, updateClip, updateTrack, type EditorModule, type EditorProject } from "@/lib/editor";
 import { EditorAudioEngine } from "@/lib/editorAudio";
-import { audioDuration, downloadYoutubeAudio, separateVocals } from "@/lib/media";
+import { audioDuration, downloadYoutubeAudio, separateVocals, uploadLocalAudio } from "@/lib/media";
+import { downloadFromMyBrowser } from "@/lib/localYoutube";
 import { getProject, type Project } from "@/lib/projects";
 import { getOverlay, type OverlayProject } from "@/lib/overlays";
 import { enfileirar } from "@/lib/queue";
@@ -54,6 +56,8 @@ function VideoEditor() {
   const [px, setPx] = useState(18);
   const [busy, setBusy] = useState("");
   const [youtube, setYoutube] = useState("");
+  const [youtubeSource, setYoutubeSource] = useState<"local" | "server">("local");
+  const [helperOpen, setHelperOpen] = useState(false);
   const [recording, setRecording] = useState(false);
   const [recordSeconds, setRecordSeconds] = useState(0);
   const [sending, setSending] = useState(false);
@@ -181,8 +185,12 @@ function VideoEditor() {
     if (!editor || !youtube.trim()) return;
     pause(); setBusy("youtube");
     try {
-      const media = await downloadYoutubeAudio(youtube.trim());
-      const next = addClip(editor, { nome: media.nome, sourceDuration: media.duracao, inicio: timeRef.current, mediaId: media.id, servidor: servidorUrl(), stem: "original", tipo: "musica", novaFaixa: true });
+      const media = youtubeSource === "local"
+        ? await uploadLocalAudio(await downloadFromMyBrowser(youtube.trim()))
+        : await downloadYoutubeAudio(youtube.trim());
+      const current = editorRef.current;
+      if (!current) return;
+      const next = addClip(current, { nome: media.nome, sourceDuration: media.duracao, inicio: timeRef.current, mediaId: media.id, servidor: servidorUrl(), stem: "original", tipo: "musica", novaFaixa: true });
       setEditor(next); setSelectedClip(next.tracks.at(-1)?.clips[0]?.id); setYoutube("");
       toast.success("Música baixada e adicionada. Use Remover voz se quiser só o instrumental.");
     } catch (e) { toast.error(e instanceof Error ? e.message : "Não foi possível baixar a música"); }
@@ -190,7 +198,8 @@ function VideoEditor() {
   }
 
   async function changeStem(stem: "original" | "instrumental") {
-    const selected = findClip(editor!, selectedClip); if (!editor || !selected?.clip.mediaId) return;
+    if (!editor) return;
+    const selected = findClip(editor, selectedClip); if (!selected?.clip.mediaId) return;
     pause();
     if (stem === "instrumental" && selected.clip.stem !== "instrumental") {
       setBusy("uvr");
@@ -227,6 +236,7 @@ function VideoEditor() {
       <Button onClick={render} disabled={sending || recording}>{sending ? <Loader2 className="animate-spin" /> : <Film />}{sending ? "Enviando…" : "Renderizar vídeo"}</Button>
     </>}>
       <RenderStatus alvoId={id} />
+      <LocalHelperDialog open={helperOpen} onOpenChange={setHelperOpen} />
       <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1fr)_310px]">
         <div className="min-w-0 space-y-4">
           <VideoPreview editor={editor} motion={motion} overlay={overlay} time={time} playing={playing} run={run} videoRef={videoRef} videoTrack={editor.tracks.find((t) => t.tipo === "video")} />
@@ -245,8 +255,12 @@ function VideoEditor() {
               {recording ? <Square className="h-4 w-4 fill-current" /> : <Mic2 className="h-4 w-4 text-primary" />}{recording ? `Parar gravação · ${recordSeconds.toFixed(1)}s` : "Gravar áudio agora"}
             </button>
             <div className="md:col-span-2">
+              <div className="mb-2 flex flex-wrap items-center gap-2">
+                <select aria-label="Origem do download do YouTube" value={youtubeSource} disabled={busy === "youtube"} onChange={(e) => setYoutubeSource(e.target.value === "server" ? "server" : "local")} className="rounded-md border border-input bg-background px-3 py-2 text-sm"><option value="local">Meu navegador</option><option value="server">Servidor</option></select>
+                <Button size="sm" variant="ghost" onClick={() => setHelperOpen(true)}><Monitor />Auxiliar no computador</Button>
+              </div>
               <div className="flex flex-col gap-2 sm:flex-row"><div className="relative min-w-0 flex-1"><Youtube className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" /><input value={youtube} onChange={(e) => setYoutube(e.target.value)} placeholder="Cole o link da música no YouTube" className={`${field} pl-9`} /></div><Button variant="outline" onClick={addYoutube} disabled={!youtube.trim() || busy === "youtube"}>{busy === "youtube" ? <Loader2 className="animate-spin" /> : <Music2 />}Baixar e adicionar</Button></div>
-              <p className="mt-2 text-xs text-muted-foreground">O servidor usa yt-dlp. Baixe somente conteúdo próprio, autorizado ou livre de direitos.</p>
+              <p className="mt-2 text-xs text-muted-foreground">{youtubeSource === "local" ? "Sessão somente no seu computador · envio somente do áudio." : "Download no servidor, sem acesso ao navegador do seu computador."} Baixe somente conteúdo próprio ou autorizado.</p>
             </div>
           </section>
 

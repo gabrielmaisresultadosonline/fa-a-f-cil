@@ -8,7 +8,7 @@ import { spawn } from "node:child_process";
 import { Readable } from "node:stream";
 import puppeteer from "puppeteer";
 import { RenderQueue, validJobId, validateManifest } from "./jobs.mjs";
-import { copyMediaIntoJob, downloadYoutube, mediaDirectory, mediaInfo, mixEditorAudio, separateVocals, streamMediaAudio } from "./audio.mjs";
+import { copyMediaIntoJob, downloadYoutube, importLocalAudio, mediaDirectory, mediaInfo, mixEditorAudio, separateVocals, streamMediaAudio } from "./audio.mjs";
 import { authenticate,assertOwner,assertMediaOwner,ownedCloudRow,retentionExpired,authorizedGeneration } from "./security.mjs";
 import { PaymentChecks } from "./payments.mjs";
 
@@ -225,6 +225,24 @@ http.createServer(async (req, res) => {
     if (req.method === "POST" && path === "/media/youtube") {
       const body = await bodyJson(req);
       const media=await downloadYoutube(MEDIA_DIR, String(body.url || ""));await writeFile(join(MEDIA_DIR,media.id,"owner.json"),JSON.stringify({user_id:user.id}));return json(res,201,media);
+    }
+    if (req.method === 'POST' && path === '/media/upload') {
+      const max = 300 * 1024 * 1024 + 100_000;
+      let received = 0;
+      const limited = Readable.from((async function* () {
+        for await (const chunk of req) {
+          received += chunk.length;
+          if (received > max) throw new Error('Áudio acima do limite de 300 MB.');
+          yield chunk;
+        }
+      })());
+      const form = await new Request('http://localhost', { method: 'POST', headers: req.headers, body: limited, duplex: 'half' }).formData();
+      const audio = form.get('audio');
+      if (!audio || typeof audio === 'string') throw new Error('Arquivo de áudio ausente.');
+      const media = await importLocalAudio(MEDIA_DIR, Buffer.from(await audio.arrayBuffer()), audio.name);
+      try { await writeFile(join(MEDIA_DIR, media.id, 'owner.json'), JSON.stringify({ user_id: user.id })); }
+      catch (error) { await rm(join(MEDIA_DIR, media.id), { recursive: true, force: true }); throw error; }
+      return json(res, 201, media);
     }
     const media = /^\/media\/([^/]+)(?:\/(audio|separate))?$/.exec(path);
     if (media) {

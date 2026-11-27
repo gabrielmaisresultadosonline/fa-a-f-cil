@@ -95,6 +95,28 @@ export async function downloadYoutube(root, value) {
   }
 }
 
+export async function importLocalAudio(root, bytes, name) {
+  if (!bytes.length || bytes.length > 300 * 1024 * 1024 || bytes.subarray(0, 4).toString() !== 'RIFF' || bytes.subarray(8, 12).toString() !== 'WAVE') {
+    throw new Error('Envie somente áudio WAV do auxiliar, com até 300 MB.');
+  }
+  const id = randomUUID(), dir = mediaDirectory(root, id);
+  await mkdir(dir, { recursive: true, mode: 0o700 });
+  try {
+    const source = join(dir, 'local.wav'), original = join(dir, 'original.wav');
+    await writeFile(source, bytes, { mode: 0o600 });
+    await run('ffmpeg', ['-y', '-i', source, '-vn', '-ac', '2', '-ar', '48000', '-c:a', 'pcm_s16le', '-fs', String(300 * 1024 * 1024), original], dir, () => {});
+    if ((await stat(original)).size >= 300 * 1024 * 1024) throw new Error('Áudio acima do limite de 300 MB.');
+    const duracao = await probeDuration(original);
+    const info = { id, nome: String(name).replace(/\.wav$/i, '').slice(0, 180) || 'Música local', duracao, criadoEm: Date.now(), instrumentalDisponivel: false };
+    await writeFile(join(dir, 'info.json'), JSON.stringify(info));
+    await rm(source);
+    return info;
+  } catch {
+    await rm(dir, { recursive: true, force: true });
+    throw new Error('Não foi possível importar o áudio do auxiliar. Envie um WAV válido de até 300 MB.');
+  }
+}
+
 export async function separateVocals(root, id) {
   const dir = mediaDirectory(root, id), info = await mediaInfo(root, id);
   const instrumental = join(dir, "instrumental.wav");
