@@ -55,6 +55,7 @@ function VideoEditor() {
   const [engine, setEngine] = useState<Engine>("ffmpeg");
   const [px, setPx] = useState(18);
   const [busy, setBusy] = useState("");
+  const [progress, setProgress] = useState<number | null>(null);
   const [youtube, setYoutube] = useState("");
   const [youtubeSource, setYoutubeSource] = useState<"local" | "server">("server");
   const [helperOpen, setHelperOpen] = useState(false);
@@ -183,11 +184,11 @@ function VideoEditor() {
 
   async function addYoutube() {
     if (!editor || !youtube.trim()) return;
-    pause(); setBusy("youtube");
+    pause(); setBusy("youtube"); setProgress(null);
     try {
       const media = youtubeSource === "local"
         ? await uploadLocalAudio(await downloadFromMyBrowser(youtube.trim()))
-        : await downloadYoutubeAudio(youtube.trim());
+        : await downloadYoutubeAudio(youtube.trim(), setProgress);
       const current = editorRef.current;
       if (!current) return;
       const next = addClip(current, { nome: media.nome, sourceDuration: media.duracao, inicio: timeRef.current, mediaId: media.id, servidor: servidorUrl(), stem: "original", tipo: "musica", novaFaixa: true });
@@ -202,8 +203,8 @@ function VideoEditor() {
     const selected = findClip(editor, selectedClip); if (!selected?.clip.mediaId) return;
     pause();
     if (stem === "instrumental" && selected.clip.stem !== "instrumental") {
-      setBusy("uvr");
-      try { await separateVocals(selected.clip.mediaId); }
+      setBusy("uvr"); setProgress(0);
+      try { await separateVocals(selected.clip.mediaId, setProgress); }
       catch (e) { toast.error(e instanceof Error ? e.message : "Não foi possível remover a voz"); setBusy(""); return; }
       setBusy("");
     }
@@ -259,7 +260,8 @@ function VideoEditor() {
                 <select aria-label="Origem do download do YouTube" value={youtubeSource} disabled={busy === "youtube"} onChange={(e) => setYoutubeSource(e.target.value === "server" ? "server" : "local")} className="rounded-md border border-input bg-background px-3 py-2 text-sm"><option value="local">Meu navegador</option><option value="server">Servidor</option></select>
                 <Button size="sm" variant="ghost" onClick={() => setHelperOpen(true)}><Monitor />Auxiliar no computador</Button>
               </div>
-              <div className="flex flex-col gap-2 sm:flex-row"><div className="relative min-w-0 flex-1"><Youtube className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" /><input value={youtube} onChange={(e) => setYoutube(e.target.value)} placeholder="Cole o link da música no YouTube" className={`${field} pl-9`} /></div><Button variant="outline" onClick={addYoutube} disabled={!youtube.trim() || busy === "youtube"}>{busy === "youtube" ? <Loader2 className="animate-spin" /> : <Music2 />}Baixar e adicionar</Button></div>
+              <div className="flex flex-col gap-2 sm:flex-row"><div className="relative min-w-0 flex-1"><Youtube className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" /><input value={youtube} onChange={(e) => setYoutube(e.target.value)} placeholder="Cole o link da música no YouTube" className={`${field} pl-9`} /></div><Button variant="outline" onClick={addYoutube} disabled={!youtube.trim() || busy === "youtube"}>{busy === "youtube" ? <Loader2 className="animate-spin" /> : <Music2 />}{busy === "youtube" ? (progress === null ? "Iniciando..." : progress >= 92 ? `Convertendo ${progress}%` : `Baixando ${progress}%`) : "Baixar e adicionar"}</Button></div>
+              {busy === "youtube" && youtubeSource === "server" && <div className="space-y-1"><div className="h-1.5 overflow-hidden rounded-full bg-muted"><div className="h-full bg-primary transition-all" style={{ width: `${progress ?? 0}%` }} /></div><p className="text-xs text-muted-foreground">{progress === null ? "Preparando o download..." : `${progress}% concluído`}</p></div>}
               <p className="mt-2 text-xs text-muted-foreground">{youtubeSource === "local" ? "Sessão somente no seu computador · envio somente do áudio." : "Download no servidor, sem acesso ao navegador do seu computador."} Baixe somente conteúdo próprio ou autorizado.</p>
             </div>
           </section>
@@ -288,8 +290,8 @@ function VideoEditor() {
             {selected && <div className="mt-4 border-t border-border pt-4"><p className="mb-3 text-xs text-muted-foreground">Ajustes da camada inteira: {track.nome}</p><AudioControls volume={track.volume} grave={track.grave} agudo={track.agudo} onChange={(patch) => setEditor(updateTrack(editor, track.id, patch))} /></div>}
             {selected?.clip.mediaId && <div className="mt-5 space-y-2 border-t border-border pt-4">
               <p className="text-xs text-muted-foreground">Voz da música (UVR)</p>
-              <div className="grid grid-cols-2 gap-2"><Button variant={selected.clip.stem !== "instrumental" ? "default" : "outline"} size="sm" onClick={() => void changeStem("original")}>Original</Button><Button variant={selected.clip.stem === "instrumental" ? "default" : "outline"} size="sm" disabled={busy === "uvr"} onClick={() => void changeStem("instrumental")}>{busy === "uvr" ? <Loader2 className="animate-spin" /> : <Scissors />}Remover voz</Button></div>
-              {busy === "uvr" && <p className="text-xs text-muted-foreground">O UVR está separando a voz no servidor. A primeira execução pode baixar o modelo e levar vários minutos.</p>}
+              <div className="grid grid-cols-2 gap-2"><Button variant={selected.clip.stem !== "instrumental" ? "default" : "outline"} size="sm" onClick={() => void changeStem("original")}>Original</Button><Button variant={selected.clip.stem === "instrumental" ? "default" : "outline"} size="sm" disabled={busy === "uvr"} onClick={() => void changeStem("instrumental")}>{busy === "uvr" ? <Loader2 className="animate-spin" /> : <Scissors />}{busy === "uvr" ? `Removendo ${progress ?? 0}%` : "Remover voz"}</Button></div>
+              {busy === "uvr" && <div className="space-y-1"><div className="h-1.5 overflow-hidden rounded-full bg-muted"><div className="h-full bg-primary transition-all" style={{ width: `${progress ?? 0}%` }} /></div><p className="text-xs text-muted-foreground">Removendo a voz: {progress ?? 0}% concluído. A primeira vez pode levar alguns minutos para começar.</p></div>}
             </div>}
             {selected && <Button variant="outline" className="mt-5 w-full text-destructive" onClick={() => { pause(); setEditor(deleteClip(editor, selected.clip.id)); setSelectedClip(undefined); }}><Trash2 />Remover este clipe</Button>}
           </section>}

@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 // MotionMRO — servidor de renderização e áudio (localhost ou VPS)
 // Requisitos: Node 22+, FFmpeg. yt-dlp e audio-separator habilitam música e remoção de voz.
 import http from "node:http";
@@ -214,7 +215,7 @@ async function bodyJson(req) {
   return JSON.parse(body || "{}");
 }
 
-const separations = new Map();
+const separations = new Map(), tasks = new Map();
 const server = http.createServer(async (req, res) => {
   cors(req,res);
   if (req.method === "OPTIONS") { res.writeHead(204); return res.end(); }
@@ -243,7 +244,22 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === "POST" && path === "/media/youtube") {
       const body = await bodyJson(req);
-      const media=await downloadYoutube(MEDIA_DIR, String(body.url || ""), await youtubeSettings.downloadOptions());await writeFile(join(MEDIA_DIR,media.id,"owner.json"),JSON.stringify({user_id:user.id}));return json(res,201,media);
+      const options = await youtubeSettings.downloadOptions();
+      // Downloads run in the background so the editor can poll and show progress.
+      const taskId = randomUUID(); const task = { user: user.id, progresso: 0, fase: "iniciando" };
+      tasks.set(taskId, task);
+      downloadYoutube(MEDIA_DIR, String(body.url || ""), options, (p, fase) => { task.progresso = Math.round(p); task.fase = fase; })
+        .then(async (media) => { await writeFile(join(MEDIA_DIR, media.id, "owner.json"), JSON.stringify({ user_id: user.id })); task.resultado = media; task.progresso = 100; })
+        .catch((e) => { task.erro = String(e?.message || e); })
+        .finally(() => setTimeout(() => tasks.delete(taskId), 600000).unref());
+      return json(res, 202, { tarefa: taskId, progresso: 0, fase: "iniciando" });
+    }
+    const taskMatch = /^\/media\/tarefa\/([0-9a-f-]{36})$/.exec(path);
+    if (req.method === "GET" && taskMatch) {
+      const task = tasks.get(taskMatch[1]);
+      if (!task || task.user !== user.id) return json(res, 404, { erro: "Tarefa não encontrada. Tente baixar novamente." });
+      if (task.erro) return json(res, 400, { erro: task.erro });
+      return json(res, 200, { progresso: task.progresso, fase: task.fase, resultado: task.resultado });
     }
     if (req.method === 'POST' && path === '/media/upload') {
       const max = 300 * 1024 * 1024 + 100_000;
@@ -276,13 +292,14 @@ const server = http.createServer(async (req, res) => {
         const state = separations.get(id);
         if (state?.erro) { separations.delete(id); return json(res, 400, { erro: state.erro }); }
         if (!state) {
-          separations.set(id, { running: true });
-          separateVocals(MEDIA_DIR, id).then(() => separations.delete(id), (e) => {
+          separations.set(id, { running: true, progresso: 0 });
+          const entry = separations.get(id);
+          separateVocals(MEDIA_DIR, id, (p) => { entry.progresso = p; }).then(() => separations.delete(id), (e) => {
             console.warn("UVR falhou:", e?.message || e);
             separations.set(id, { erro: "Não foi possível remover a voz desta música no servidor. Verifique se o UVR foi instalado (rode o atualizador) e tente novamente." });
           });
         }
-        return json(res, 202, { ...info, separando: true });
+        return json(res, 202, { ...info, separando: true, progresso: separations.get(id)?.progresso || 0 });
       }
       if (req.method === "GET" && action === "audio") {
         const stem = new URL(req.url || "/", "http://localhost").searchParams.get("stem") === "instrumental" ? "instrumental" : "original";

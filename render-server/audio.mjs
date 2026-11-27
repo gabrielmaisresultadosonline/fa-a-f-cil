@@ -59,7 +59,7 @@ export async function mediaInfo(root, id) {
   return JSON.parse(await readFile(join(mediaDirectory(root, id), "info.json"), "utf8"));
 }
 
-export async function downloadYoutube(root, value, options = {}) {
+export async function downloadYoutube(root, value, options = {}, onProgress = () => {}) {
   if (!validYoutubeUrl(value)) throw new Error("Cole um link válido de um vídeo do YouTube");
   const id = randomUUID(), dir = mediaDirectory(root, id);
   await mkdir(dir, { recursive: true, mode: 0o700 });
@@ -78,11 +78,17 @@ export async function downloadYoutube(root, value, options = {}) {
   }
   let title;
   try {
-    title = await run("yt-dlp", youtubeArguments(join(dir, "download.%(ext)s"), value, cookieFile), dir, () => {});
+    let buffered = "";
+    const output = await run("yt-dlp", youtubeArguments(join(dir, "download.%(ext)s"), value, cookieFile), dir, (chunk) => {
+      buffered += chunk; const lines = buffered.split(/\r?\n/); buffered = lines.pop() || "";
+      for (const line of lines) { const m = /MROPCT\s*([\d.]+)%/.exec(line); if (m) onProgress(Math.min(90, Number(m[1]) * 0.9), "baixando"); }
+    });
+    title = output.split(/\r?\n/).filter((line) => !line.includes("MROPCT")).join("\n");
   } catch (error) { throw youtubeError(error); }
   const downloaded = (await readdir(dir)).find((name) => /^download\.(webm|m4a|mp4|mp3|ogg|opus|wav|flac|aac)$/i.test(name));
   if (!downloaded) throw new Error("O yt-dlp terminou sem gerar um arquivo de áudio");
   const original = join(dir, "original.wav");
+  onProgress(92, "convertendo");
   await run("ffmpeg", ["-y", "-i", join(dir, downloaded), "-vn", "-ac", "2", "-ar", "48000", "-c:a", "pcm_s16le", original], dir);
   const duracao = await probeDuration(original);
   const lines = title.trim().split(/\r?\n/).map((x) => x.trim()).filter(Boolean);
@@ -119,7 +125,7 @@ export async function importLocalAudio(root, bytes, name) {
   }
 }
 
-export async function separateVocals(root, id) {
+export async function separateVocals(root, id, onProgress = () => {}) {
   const dir = mediaDirectory(root, id), info = await mediaInfo(root, id);
   const instrumental = join(dir, "instrumental.wav");
   if (await stat(instrumental).then(() => true, () => false)) return { ...info, instrumentalDisponivel: true };
@@ -135,13 +141,15 @@ export async function separateVocals(root, id) {
     await run("ffmpeg", ["-y", "-i", join(dir, "original.wav"), "-ac", "2", "-ar", "44100", "-c:a", "pcm_s16le", "-f", "segment", "-segment_time", chunkSeconds, join(work, "part%03d.wav")], dir);
     const parts = (await readdir(work)).filter((n) => /^part\d+\.wav$/.test(n)).sort();
     const outputs = [];
-    for (const part of parts) {
+    onProgress(2, "separando");
+    for (const [index, part] of parts.entries()) {
       const out = join(work, part.replace(".wav", "")); await mkdir(out, { recursive: true });
       await run(command, [join(work, part), "--model_filename", model, "--model_file_dir", modelsDir, "--output_dir", out, "--output_format=WAV"], dir);
       const names = await readdir(out);
       const source = names.find((name) => /instrumental|accompaniment|other/i.test(name) && /\.(wav|mp3|flac|ogg)$/i.test(name));
       if (!source) throw new Error(`O UVR não gerou a faixa instrumental. Arquivos recebidos: ${names.join(", ").slice(0, 300)}`);
       outputs.push(join(out, source));
+      onProgress(Math.round(((index + 1) / parts.length) * 95), "separando");
     }
     if (!outputs.length) throw new Error("Áudio vazio para remover a voz.");
     const list = join(work, "list.txt");

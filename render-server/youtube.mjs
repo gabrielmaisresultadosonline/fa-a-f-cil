@@ -2,7 +2,7 @@
 export function youtubeArguments(output, url, cookieFile) {
   const args = ["--ignore-config", "--no-playlist", "--js-runtimes", `node:${process.execPath}`,
     "--socket-timeout", "30", "--retries", "3", "--max-filesize", "300M",
-    "--restrict-filenames", "--quiet", "--no-simulate", "--print", "after_move:%(title)s",
+    "--restrict-filenames", "--quiet", "--progress", "--newline", "--progress-template", "download:MROPCT %(progress._percent_str)s", "--no-simulate", "--print", "after_move:%(title)s",
     "-f", "bestaudio/best", "-o", output];
   if (cookieFile) args.push("--cookies", cookieFile);
   args.push("--", url);

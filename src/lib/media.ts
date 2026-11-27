@@ -14,20 +14,33 @@ async function responseJson(response: Response) {
   return data;
 }
 
-export async function downloadYoutubeAudio(url: string): Promise<RemoteAudio> {
+export type ProgressFn = (percent: number) => void;
+const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+export async function downloadYoutubeAudio(url: string, onProgress: ProgressFn = () => {}): Promise<RemoteAudio> {
   const response = await renderFetch(`${servidorUrl()}/media/youtube`, {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url }),
   });
-  return await responseJson(response) as RemoteAudio;
+  const start = await responseJson(response) as RemoteAudio & { tarefa?: string };
+  if (!start.tarefa) return start; // older servers answer with the media directly
+  onProgress(0);
+  for (let i = 0; i < 1200; i++) {
+    await wait(1500);
+    const status = await responseJson(await renderFetch(`${servidorUrl()}/media/tarefa/${start.tarefa}`)) as { progresso?: number; resultado?: RemoteAudio };
+    onProgress(status.progresso || 0);
+    if (status.resultado) return status.resultado;
+  }
+  throw new Error("O download demorou demais. Tente novamente.");
 }
 
-export async function separateVocals(mediaId: string): Promise<RemoteAudio> {
+export async function separateVocals(mediaId: string, onProgress: ProgressFn = () => {}): Promise<RemoteAudio> {
   // The server separates in the background; poll until the instrumental exists (up to ~40 min).
-  for (let i = 0; i < 480; i++) {
+  for (let i = 0; i < 800; i++) {
     const response = await renderFetch(`${servidorUrl()}/media/${mediaId}/separate`, { method: "POST" });
-    const data = await responseJson(response) as RemoteAudio & { separando?: boolean };
-    if (!data.separando) return data;
-    await new Promise((r) => setTimeout(r, 5000));
+    const data = await responseJson(response) as RemoteAudio & { separando?: boolean; progresso?: number };
+    if (!data.separando) { onProgress(100); return data; }
+    onProgress(data.progresso || 0);
+    await wait(3000);
   }
   throw new Error("A remoção de voz demorou demais. Tente novamente.");
 }
