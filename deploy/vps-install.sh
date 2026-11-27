@@ -39,6 +39,11 @@ if [[ -d $APP_DIR/.git ]]; then
 else
   runuser -u $APP_USER -- git clone $REPO $APP_DIR
 fi
+# O link de download pode entregar uma cópia antiga por alguns minutos; a versão do repositório sempre manda.
+if [[ -z ${MRO_INSTALLER_REEXEC:-} ]] && ! cmp -s "$0" "$APP_DIR/deploy/vps-install.sh"; then
+  echo 'Usando a versão mais nova do instalador baixada do GitHub...'
+  exec env MRO_INSTALLER_REEXEC=1 bash "$APP_DIR/deploy/vps-install.sh" "$@"
+fi
 
 echo '== 4/8 Bun, backend, yt-dlp e UVR =='
 # Somente caches recriáveis; projetos, banco e arquivos de clientes não são tocados.
