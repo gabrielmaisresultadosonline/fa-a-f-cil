@@ -19,6 +19,7 @@ import { Route as OverlayIdRouteImport } from './routes/overlay.$id'
 import { Route as ProjetosIndexRouteImport } from './routes/projetos.index'
 import { Route as ProjetosIdRouteImport } from './routes/projetos.$id'
 import { Route as RenderizarIdRouteImport } from './routes/renderizar.$id'
+import { Route as EditorModuloIdRouteImport } from './routes/editor.$modulo.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -70,6 +71,11 @@ const RenderizarIdRoute = RenderizarIdRouteImport.update({
   path: '/renderizar/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EditorModuloIdRoute = EditorModuloIdRouteImport.update({
+  id: '/editor/$modulo/$id',
+  path: '/editor/$modulo/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -82,6 +88,7 @@ export interface FileRoutesByFullPath {
   '/renderizar/$id': typeof RenderizarIdRoute
   '/overlay/': typeof OverlayIndexRoute
   '/projetos/': typeof ProjetosIndexRoute
+  '/editor/$modulo/$id': typeof EditorModuloIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -94,6 +101,7 @@ export interface FileRoutesByTo {
   '/renderizar/$id': typeof RenderizarIdRoute
   '/overlay': typeof OverlayIndexRoute
   '/projetos': typeof ProjetosIndexRoute
+  '/editor/$modulo/$id': typeof EditorModuloIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -107,6 +115,7 @@ export interface FileRoutesById {
   '/renderizar/$id': typeof RenderizarIdRoute
   '/overlay/': typeof OverlayIndexRoute
   '/projetos/': typeof ProjetosIndexRoute
+  '/editor/$modulo/$id': typeof EditorModuloIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -121,6 +130,7 @@ export interface FileRouteTypes {
     | '/renderizar/$id'
     | '/overlay/'
     | '/projetos/'
+    | '/editor/$modulo/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -133,6 +143,7 @@ export interface FileRouteTypes {
     | '/renderizar/$id'
     | '/overlay'
     | '/projetos'
+    | '/editor/$modulo/$id'
   id:
     | '__root__'
     | '/'
@@ -145,6 +156,7 @@ export interface FileRouteTypes {
     | '/renderizar/$id'
     | '/overlay/'
     | '/projetos/'
+    | '/editor/$modulo/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -158,6 +170,7 @@ export interface RootRouteChildren {
   RenderizarIdRoute: typeof RenderizarIdRoute
   OverlayIndexRoute: typeof OverlayIndexRoute
   ProjetosIndexRoute: typeof ProjetosIndexRoute
+  EditorModuloIdRoute: typeof EditorModuloIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -232,6 +245,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RenderizarIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/editor/$modulo/$id': {
+      id: '/editor/$modulo/$id'
+      path: '/editor/$modulo/$id'
+      fullPath: '/editor/$modulo/$id'
+      preLoaderRoute: typeof EditorModuloIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -246,6 +266,7 @@ const rootRouteChildren: RootRouteChildren = {
   RenderizarIdRoute: RenderizarIdRoute,
   OverlayIndexRoute: OverlayIndexRoute,
   ProjetosIndexRoute: ProjetosIndexRoute,
+  EditorModuloIdRoute: EditorModuloIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

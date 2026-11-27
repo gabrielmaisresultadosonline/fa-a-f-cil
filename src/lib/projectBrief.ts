@@ -15,7 +15,7 @@ export function reuseConfig(p: Project): ProjectConfig {
 }
 
 export function buildMotionBrief(c: ProjectConfig) {
-  return `Ideia: ${c.ideia}\nDuração total: ${c.duracao}s\nFormato: ${c.largura}x${c.altura}\nEstilo: ${c.estilo || "a IA decide"}\nPaleta: ${c.paleta || "a IA decide"}\nPúblico: ${c.publico || "a IA decide"}\nObjetivo: ${c.objetivo || "a IA decide"}\nIdioma dos textos: ${c.idioma}\nVelocidade: ${c.velocidade}\nIntensidade dos efeitos: ${c.intensidade}\nEfeitos sonoros: ${c.sons ? "SIM — escolha os melhores momentos" : "não"}\nMovimentos de câmera: sim, cinematográficos\nNarração por voz: ${c.voz ? "SIM — escreva o texto falado de cada cena" : "não"}`;
+  return `Ideia: ${c.ideia}\nDuração total: ${c.duracao}s\nFormato: ${c.largura}x${c.altura}\nEstilo: ${c.estilo || "a IA decide"}\nPaleta: ${c.paleta || "a IA decide"}\nPúblico: ${c.publico || "a IA decide"}\nObjetivo: ${c.objetivo || "a IA decide"}\nIdioma dos textos: ${c.idioma}\nVelocidade: ${c.velocidade}\nIntensidade dos efeitos: ${c.intensidade}\nEfeitos sonoros: ${c.sons ? "SIM — escolha os melhores momentos" : "não"}\nMovimentos de câmera: sim, cinematográficos\nNarração por voz: não; áudio será editado depois em camadas`;
 }
 
 export function formatOriginalRequest(p: Project) {

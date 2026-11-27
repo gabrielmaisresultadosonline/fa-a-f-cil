@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Play, Pause, Download, Film, ListPlus, RefreshCw, Loader2, Check, X, Circle, Wand2 } from "lucide-react";
+import { Play, Pause, Download, Film, ListPlus, RefreshCw, Loader2, Check, X, Circle, Wand2, SlidersHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AppShell } from "@/components/motion/AppShell";
@@ -90,6 +90,7 @@ function Editor() {
   return (
     <AppShell title={p.config.nome} actions={<>
       <ProjectRequest project={p} />
+      <Link to="/editor/$modulo/$id" params={{ modulo: "motion", id: p.id }} disabled={!ready.length} className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-40"><SlidersHorizontal className="h-4 w-4" />Abrir vídeo editor</Link>
       {(p.status === "erro" || (p.status === "rascunho" && !busy)) && <button onClick={() => start(p)} disabled={busy} className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm hover:border-primary"><RefreshCw className="h-4 w-4" />{p.status === "erro" ? "Continuar produção" : "Iniciar produção"}</button>}
       <button onClick={exportar} disabled={!ready.length} className="inline-flex items-center gap-2 rounded-md bg-gradient-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-40"><Download className="h-4 w-4" />Exportar HTML</button>
       <Link to="/renderizar/$id" params={{ id: p.id }} disabled={!ready.length} className="inline-flex items-center gap-2 rounded-md border border-primary px-4 py-2 text-sm font-semibold text-primary"><Film className="h-4 w-4" />Gravar no navegador</Link>
@@ -102,7 +103,7 @@ function Editor() {
         <aside className="min-w-0 space-y-4">
           <div className="rounded-lg border border-border bg-card p-4">
             <h3 className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Agentes</h3>
-            <ul className="mt-3 space-y-3">{AGENTES.filter((a) => a.key !== "locutor" || p.config.voz).map((a) => (<li key={a.key} className="flex items-start gap-3">{ICON[p.agentes[a.key] ?? "aguardando"]}<div><div className="text-sm font-medium">{a.nome}</div><div className="text-xs text-muted-foreground">{a.desc}</div></div></li>))}</ul>
+            <ul className="mt-3 space-y-3">{AGENTES.map((a) => (<li key={a.key} className="flex items-start gap-3">{ICON[p.agentes[a.key] ?? "aguardando"]}<div><div className="text-sm font-medium">{a.nome}</div><div className="text-xs text-muted-foreground">{a.desc}</div></div></li>))}</ul>
           </div>
           <div className="max-h-72 overflow-auto rounded-lg border border-border bg-card p-4 font-mono text-xs">
             {p.log.length === 0 ? <span className="text-muted-foreground">Sem eventos.</span> : p.log.slice().reverse().map((l, i) => (
@@ -114,7 +115,7 @@ function Editor() {
         <section className="flex min-w-0 flex-col gap-4">
           <div className="h-[56vh] min-h-[320px]">
             <ScenePlayer scenes={single ? (cena ? [cena] : []) : ready} width={p.config.largura} height={p.config.altura}
-              start={single ? 0 : Math.max(0, ready.findIndex((c) => c.id === cena?.id))} playing={playing} loopSingle={single} sfx={!!p.config.sons} voz={!!p.config.voz} />
+              start={single ? 0 : Math.max(0, ready.findIndex((c) => c.id === cena?.id))} playing={playing} loopSingle={single} sfx={!!p.config.sons} />
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <button onClick={() => setPlaying((x) => !x)} className="inline-flex items-center gap-2 rounded-md bg-secondary px-3 py-2 text-sm">{playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}{playing ? "Pausar" : "Reproduzir"}</button>

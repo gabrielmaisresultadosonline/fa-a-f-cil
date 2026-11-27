@@ -1,10 +1,11 @@
 import { get, set, del, keys } from "idb-keyval";
 import { getOverlay } from "./overlays";
 import { getProject } from "./projects";
-import { enviarJob, prepararMotion, prepararOverlay, serverRequest, servidorUrl, type Engine, type ServerJob } from "./serverRender";
+import { enviarJob, prepararEditor, prepararMotion, prepararOverlay, serverRequest, servidorUrl, type Engine, type ServerJob } from "./serverRender";
+import { getEditor } from "./editor";
 
 export interface Job {
-  id: string; modulo: "motion" | "overlay"; alvoId: string; nome: string; engine: Engine;
+  id: string; modulo: "motion" | "overlay"; alvoId: string; nome: string; engine: Engine; editorId?: string;
   status: "enviando" | "na fila" | "renderizando" | "concluido" | "erro"; criadoEm: number; inicio?: number; fim?: number;
   erro?: string | undefined; resultado?: Blob;
   servidor?: string; remoto?: boolean; progresso?: number; envio?: number; etapa?: string;
@@ -26,7 +27,7 @@ export async function listJobs() {
   const ks = (await keys()).filter((k) => String(k).startsWith(P));
   return ((await Promise.all(ks.map((k) => get<Job>(k)))).filter(Boolean) as Job[]).sort((a, b) => a.criadoEm - b.criadoEm);
 }
-export async function enfileirar(j: Pick<Job, "modulo" | "alvoId" | "nome" | "engine">) {
+export async function enfileirar(j: Pick<Job, "modulo" | "alvoId" | "nome" | "engine" | "editorId">) {
   const job: Job = { ...j, id: crypto.randomUUID(), status: "enviando", criadoEm: Date.now(), servidor: servidorUrl(), progresso: 0, envio: 0, etapa: "Preparando vídeo e áudio" };
   await saveJob(job);
   return enviar(job);
@@ -41,7 +42,11 @@ async function enviar(job: Job): Promise<Job> {
   let writes = Promise.resolve();
   try {
     let fd: FormData;
-    if (job.modulo === "overlay") {
+    if (job.editorId) {
+      const editor = await getEditor(job.modulo, job.alvoId);
+      if (!editor || editor.id !== job.editorId) throw new Error("Editor apagado ou alterado");
+      fd = await prepararEditor(editor, job.engine);
+    } else if (job.modulo === "overlay") {
       const p = await getOverlay(job.alvoId); if (!p) throw new Error("Projeto apagado");
       fd = await prepararOverlay(p, job.engine);
     } else {

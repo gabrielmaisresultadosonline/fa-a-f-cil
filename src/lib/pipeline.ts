@@ -1,6 +1,5 @@
 import { callAgent } from "./ai";
 import { saveProject, type Project, type Scene } from "./projects";
-import { gerarVoz } from "./tts";
 import type { CustoMeta } from "./costs";
 import { buildMotionBrief } from "./projectBrief";
 import { prepareSceneHtml, validateSceneLayout } from "./sceneLayout";
@@ -40,19 +39,6 @@ export async function runPipeline(p: Project, onUpdate: (p: Project) => void) {
       await generateScene(p, i);
     }
     p.agentes.desenvolvedor = "concluido";
-    if (c.voz) {
-      p.agentes.locutor = "executando";
-      for (let i = 0; i < p.cenas.length; i++) {
-        const cena = p.cenas[i];
-        if (!cena) continue;
-        if (cena.audio) continue;
-        const texto = (cena.narracao || [cena.textoPrincipal, cena.textoSecundario].filter(Boolean).join(". ")).trim();
-        if (!texto) continue;
-        await push("Locutor", `Gravando voz da cena ${i + 1}…`);
-        cena.audio = await gerarVoz(texto, meta(p, `Voz — cena ${i + 1}`));
-      }
-      p.agentes.locutor = "concluido";
-    }
     p.agentes.validador = "executando"; await push("Validador", "Validando cenas…");
     for (const scene of p.cenas) {
       if (!scene.html) throw new Error("Cena sem código. Continue a produção.");
@@ -82,7 +68,7 @@ export async function generateScene(p: Project, i: number, ajuste?: string) {
     const r = await callAgent({ agente: "desenvolvedor", contexto, largura: c.largura, altura: c.altura, ...(attempt ? { modelo: MODELO_SUPERVISOR } : {}) }, meta(p, `Dev. de Motion — cena ${i + 1}${attempt ? " — correção de layout (supervisor)" : ""}`));
     html = prepareSceneHtml(r.text, c.largura, c.altura);
     issues = await validateSceneLayout(html, c.largura, c.altura);
-    if (!issues.length) { cena.html = html; cena.htmlRejeitado = undefined; await saveProject(p); return; }
+    if (!issues.length) { cena.html = html; delete cena.htmlRejeitado; await saveProject(p); return; }
   }
   cena.htmlRejeitado = html;
   await saveProject(p);

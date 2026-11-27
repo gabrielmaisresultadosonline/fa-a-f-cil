@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Sparkles, Layers, Plus, Film, ListVideo, Wallet, ArrowRight, Mic, Volume2, Video, Clapperboard } from "lucide-react";
+import { Sparkles, Layers, Plus, Film, ListVideo, Wallet, ArrowRight, Volume2, Video, Clapperboard } from "lucide-react";
 import { AppShell } from "@/components/motion/AppShell";
 import { AGENTES, listProjects, type Project } from "@/lib/projects";
 import { listOverlays, type OverlayProject } from "@/lib/overlays";
@@ -10,9 +10,9 @@ import { fmtBRL, fmtUSD, listCustos, type Custo } from "@/lib/costs";
 export const Route = createFileRoute("/")({
   head: () => ({ meta: [
     { title: "Dashboard — MotionMRO" },
-    { name: "description", content: "Estúdio de vídeo com IA: motion graphics, overlays, voz, fila de renderização e custos." },
+    { name: "description", content: "Estúdio de vídeo com IA: motion graphics, overlays, editor de áudio por camadas, fila de renderização e custos." },
     { property: "og:title", content: "Dashboard — MotionMRO" },
-    { property: "og:description", content: "Estúdio de vídeo com IA: motion graphics, overlays, voz, fila de renderização e custos." },
+    { property: "og:description", content: "Estúdio de vídeo com IA: motion graphics, overlays, editor de áudio por camadas, fila de renderização e custos." },
     { property: "og:type", content: "website" },
     { name: "twitter:card", content: "summary_large_image" },
   ] }),
@@ -48,7 +48,7 @@ function Dashboard() {
           <div>
             <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.25em] text-primary"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />Estúdio de produção com IA</span>
             <h2 className="mt-5 text-4xl font-bold leading-[1.05] tracking-tight md:text-6xl">Da ideia ao <span className="text-gradient">vídeo final</span>, dirigido por agentes.</h2>
-            <p className="mt-4 max-w-xl text-muted-foreground">Direção criativa, roteiro, motion graphics, narração com voz, efeitos sonoros e renderização em fila — tudo num só lugar.</p>
+            <p className="mt-4 max-w-xl text-muted-foreground">Direção criativa, roteiro, motion graphics, efeitos sonoros, edição de áudio por camadas e renderização em fila — tudo num só lugar.</p>
             <div className="mt-7 flex flex-wrap gap-3">
               <Link to="/novo" className="group inline-flex items-center gap-2 rounded-lg bg-gradient-primary px-5 py-3 font-semibold text-primary-foreground shadow-glow transition-transform hover:-translate-y-0.5"><Sparkles className="h-4 w-4" />Criar Motion IA<ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" /></Link>
               <Link to="/overlay" className="inline-flex items-center gap-2 rounded-lg border border-border bg-card/70 px-5 py-3 font-medium backdrop-blur transition-colors hover:border-accent"><Layers className="h-4 w-4 text-accent" />Video Overlay IA</Link>
@@ -112,7 +112,7 @@ function Dashboard() {
             <h3 className="font-semibold">Equipe de agentes</h3>
             <ul className="mt-3 space-y-3">
               {AGENTES.map((a) => (<li key={a.key} className="flex items-start gap-3">
-                <span className="mt-0.5 grid h-7 w-7 place-items-center rounded-md bg-secondary">{a.key === "locutor" ? <Mic className="h-3.5 w-3.5 text-primary" /> : a.key === "validador" ? <Volume2 className="h-3.5 w-3.5 text-primary" /> : <Sparkles className="h-3.5 w-3.5 text-primary" />}</span>
+                <span className="mt-0.5 grid h-7 w-7 place-items-center rounded-md bg-secondary">{a.key === "validador" ? <Volume2 className="h-3.5 w-3.5 text-primary" /> : <Sparkles className="h-3.5 w-3.5 text-primary" />}</span>
                 <div><div className="text-sm font-medium">{a.nome}</div><div className="text-xs text-muted-foreground">{a.desc}</div></div></li>))}
             </ul>
           </section>

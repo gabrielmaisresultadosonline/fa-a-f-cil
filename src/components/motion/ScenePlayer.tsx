@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState, type Ref } from "react";
 import type { Scene } from "@/lib/projects";
-import { playBlob, scheduleSons } from "@/lib/sfx";
+import { scheduleSons } from "@/lib/sfx";
 import { prepareSceneHtml } from "@/lib/sceneLayout";
 
-export function ScenePlayer({ scenes, width, height, start = 0, playing, onIndex, loopSingle, sfx = false, voz = true, stageRef, noLoop }: {
-  scenes: Scene[]; width: number; height: number; start?: number; playing: boolean; onIndex?: (i: number) => void; loopSingle?: boolean;
-  sfx?: boolean; voz?: boolean; stageRef?: Ref<HTMLDivElement>; noLoop?: boolean;
+export function ScenePlayer({ scenes, width, height, start = 0, startOffset = 0, playing, onIndex, loopSingle, sfx = false, stageRef, noLoop }: {
+  scenes: Scene[]; width: number; height: number; start?: number; startOffset?: number; playing: boolean; onIndex?: (i: number) => void; loopSingle?: boolean;
+  sfx?: boolean; stageRef?: Ref<HTMLDivElement>; noLoop?: boolean;
 }) {
   const box = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.3);
@@ -22,14 +22,13 @@ export function ScenePlayer({ scenes, width, height, start = 0, playing, onIndex
   useEffect(() => {
     if (!playing || !cur) return;
     const cancel = scheduleSons(cur.sons, sfx);
-    const stopVoz = voz && cur.audio ? playBlob(cur.audio) : () => {};
     const t = setTimeout(() => {
       if (loopSingle) setNonce((n) => n + 1);
       else if (noLoop && i === scenes.length - 1) return;
       else setI((x) => (x + 1) % scenes.length);
-    }, cur.duracao * 1000);
-    return () => { clearTimeout(t); cancel(); stopVoz(); };
-  }, [playing, cur, scenes.length, loopSingle, nonce, i, sfx, noLoop, voz]);
+    }, Math.max(0.05, cur.duracao - startOffset) * 1000);
+    return () => { clearTimeout(t); cancel(); };
+  }, [playing, cur, scenes.length, loopSingle, nonce, i, sfx, noLoop, startOffset]);
   return (
     <div ref={box} className="relative grid h-full w-full place-items-center overflow-hidden rounded-lg bg-stage grid-lines">
       <div ref={stageRef} style={{ width: width * scale, height: height * scale }} className="relative overflow-hidden rounded-md shadow-glow">

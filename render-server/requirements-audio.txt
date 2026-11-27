@@ -1,0 +1,3 @@
+# Separação de voz com modelos do Ultimate Vocal Remover (UVR).
+# Em máquinas sem GPU, use: pip install "audio-separator[cpu]"
+audio-separator>=0.48,<1

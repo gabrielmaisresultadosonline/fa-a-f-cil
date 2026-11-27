@@ -2,8 +2,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   storage: new Map<string, unknown>(),
-  enviarJob: vi.fn(), prepararMotion: vi.fn(), prepararOverlay: vi.fn(), serverRequest: vi.fn(),
-  getProject: vi.fn(), getOverlay: vi.fn(),
+  enviarJob: vi.fn(), prepararMotion: vi.fn(), prepararOverlay: vi.fn(), prepararEditor: vi.fn(), serverRequest: vi.fn(),
+  getProject: vi.fn(), getOverlay: vi.fn(), getEditor: vi.fn(),
 }));
 vi.mock("idb-keyval", () => ({
   get: async (key: string) => mocks.storage.get(key),
@@ -15,9 +15,10 @@ vi.mock("./projects", () => ({ getProject: mocks.getProject }));
 vi.mock("./overlays", () => ({ getOverlay: mocks.getOverlay }));
 vi.mock("./serverRender", () => ({
   enviarJob: mocks.enviarJob, prepararMotion: mocks.prepararMotion,
-  prepararOverlay: mocks.prepararOverlay, serverRequest: mocks.serverRequest,
+  prepararOverlay: mocks.prepararOverlay, prepararEditor: mocks.prepararEditor, serverRequest: mocks.serverRequest,
   servidorUrl: () => "http://localhost:4400",
 }));
+vi.mock("./editor", () => ({ getEditor: mocks.getEditor }));
 import { downloadJobUrl, enfileirar, listJobs, processarFila, retryJob, saveJob, type Job } from "./queue";
 
 const accepted: Job = {
@@ -30,6 +31,8 @@ beforeEach(() => {
   mocks.getOverlay.mockResolvedValue({ id: "overlay-1" });
   mocks.prepararMotion.mockResolvedValue(new FormData());
   mocks.prepararOverlay.mockResolvedValue(new FormData());
+  mocks.prepararEditor.mockResolvedValue(new FormData());
+  mocks.getEditor.mockResolvedValue({ id: "editor-1" });
 });
 
 describe("Server-owned render queue", () => {
@@ -52,6 +55,14 @@ describe("Server-owned render queue", () => {
     expect(result.remoto).toBe(true);
     expect(result.engine).toBe("hyperframes");
     expect(mocks.prepararOverlay).toHaveBeenCalledWith({ id: "overlay-1" }, "hyperframes");
+  });
+
+  it("sends the saved layer edit instead of regenerating the original audio", async () => {
+    mocks.enviarJob.mockResolvedValue({ id: "job", status: "na fila", progresso: 0, etapa: "Aguardando" });
+    await enfileirar({ modulo: "motion", alvoId: "project-1", nome: "Vídeo", engine: "ffmpeg", editorId: "editor-1" });
+    expect(mocks.getEditor).toHaveBeenCalledWith("motion", "project-1");
+    expect(mocks.prepararEditor).toHaveBeenCalledWith({ id: "editor-1" }, "ffmpeg");
+    expect(mocks.prepararMotion).not.toHaveBeenCalled();
   });
 
   it("reopening reads 100% and offers the saved MP4 without resubmitting a render", async () => {

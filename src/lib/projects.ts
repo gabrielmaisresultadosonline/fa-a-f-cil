@@ -84,7 +84,6 @@ export const AGENTES: { key: AgentKey; nome: string; desc: string }[] = [
   { key: "diretor", nome: "Diretor Criativo", desc: "Conceito, cores, tipografia e estilo" },
   { key: "roteirista", nome: "Roteirista", desc: "Narrativa dividida em cenas" },
   { key: "desenvolvedor", nome: "Dev. de Motion", desc: "Código HTML/CSS/JS de cada cena" },
-  { key: "locutor", nome: "Locutor (voz)", desc: "Narração com voz ElevenLabs" },
   { key: "validador", nome: "Validador", desc: "Confere o código e as durações" },
 ];
 

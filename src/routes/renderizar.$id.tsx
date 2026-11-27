@@ -37,8 +37,8 @@ function Render() {
     if (!p || !stage.current) return;
     setPlaying(false); setRec(true);
     try {
-      if (sfx || p.config.voz) { audioCtx(); recordDest(); }
-      const { blob, ext } = await recordRegion(stage.current, total, sfx || p.config.voz ? recordDest().stream : null, () => { setRun((r) => r + 1); setPlaying(true); });
+      if (sfx) { audioCtx(); recordDest(); }
+      const { blob, ext } = await recordRegion(stage.current, total, sfx ? recordDest().stream : null, () => { setRun((r) => r + 1); setPlaying(true); });
       download(blob, `${p.config.nome.replace(/\W+/g, "_")}.${ext}`);
       toast.success(`Vídeo ${ext.toUpperCase()} gerado`);
     } catch (e) { toast.error(e instanceof Error ? e.message : "Gravação cancelada"); }
@@ -65,7 +65,7 @@ function Render() {
       )}
       {rec && <div className="flex items-center gap-2 px-4 py-2 text-xs text-destructive"><Loader2 className="h-3 w-3 animate-spin" />Gravando… não mexa nesta aba ({total}s)</div>}
       <div className="min-h-0 flex-1 p-2">
-        <ScenePlayer key={run} scenes={scenes} width={p.config.largura} height={p.config.altura} playing={playing} sfx={sfx} voz={!!p.config.voz} stageRef={stage} noLoop />
+        <ScenePlayer key={run} scenes={scenes} width={p.config.largura} height={p.config.altura} playing={playing} sfx={sfx} stageRef={stage} noLoop />
       </div>
     </div>
   );

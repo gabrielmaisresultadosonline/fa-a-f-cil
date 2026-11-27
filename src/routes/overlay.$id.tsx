@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { Circle, Loader2, RefreshCw, Wand2 } from "lucide-react";
+import { Circle, Loader2, RefreshCw, Wand2, SlidersHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AppShell } from "@/components/motion/AppShell";
@@ -130,6 +130,7 @@ function OverlayEditor() {
 
   return (
     <AppShell title={p.nome} actions={<>
+      <Link to="/editor/$modulo/$id" params={{ modulo: "overlay", id: p.id }} disabled={!p.overlays.some((x) => x.html)} className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-40"><SlidersHorizontal className="h-4 w-4" />Abrir vídeo editor</Link>
       {(p.status === "erro" || (p.status === "rascunho" && !busy)) && <button onClick={() => start(p)} className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm"><RefreshCw className="h-4 w-4" />{p.status === "erro" ? "Continuar" : "Iniciar"}</button>}
       <select value={modo} onChange={(e) => setModo(e.target.value as typeof modo)} className="rounded-md border border-input bg-background px-2 py-2 text-sm">
         <option value="ffmpeg">FFmpeg (servidor)</option><option value="hyperframes">HyperFrames (servidor)</option><option value="navegador">Gravar no navegador</option>

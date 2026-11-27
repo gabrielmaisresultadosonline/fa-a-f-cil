@@ -27,7 +27,7 @@ export function ProjectRequest({ project }: { project: Project }) {
             ["Estilo", c.estilo || "A IA decide"], ["Paleta", c.paleta || "A IA decide"],
             ["Público", c.publico || "A IA decide"], ["Objetivo", c.objetivo || "A IA decide"],
             ["Idioma", c.idioma], ["Velocidade", c.velocidade], ["Intensidade", c.intensidade],
-            ["Efeitos sonoros", c.sons ? "Ativados" : "Desativados"], ["Narração", c.voz ? "Ativada" : "Desativada"],
+            ["Efeitos sonoros", c.sons ? "Ativados" : "Desativados"],
           ].map(([label, value]) => <div key={label} className="min-w-0"><dt className="text-xs text-muted-foreground">{label}</dt><dd className="whitespace-pre-wrap break-words">{value}</dd></div>)}
         </dl>
         <div className="flex flex-wrap gap-2 border-t border-border pt-4">

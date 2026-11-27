@@ -119,5 +119,18 @@ export function validateManifest(m) {
     if (!Number.isFinite(o.inicio) || !Number.isFinite(o.fim) || o.inicio < 0 || o.fim <= o.inicio || o.fim > m.duracao + 0.001 || typeof o.html !== "string" || o.html.length > 2_000_000) throw new Error("Camada inválida");
     if (!["nenhum", "punch", "zoom-in", "zoom-out", "pan-esquerda", "pan-direita", undefined].includes(o.camera)) throw new Error("Câmera inválida");
   }
+  if (m.audio !== undefined) {
+    if (!m.audio || typeof m.audio !== "object" || !m.audio.video || !Array.isArray(m.audio.clips) || m.audio.clips.length > 200) throw new Error("Áudio do editor inválido");
+    for (const settings of [m.audio.video, ...m.audio.clips]) {
+      if (!Number.isFinite(settings.volume) || settings.volume < 0 || settings.volume > 4 || !Number.isFinite(settings.grave) || settings.grave < -24 || settings.grave > 24 || !Number.isFinite(settings.agudo) || settings.agudo < -24 || settings.agudo > 24) throw new Error("Volume ou equalização inválidos");
+    }
+    if (typeof m.audio.video.mudo !== "boolean") throw new Error("Áudio do vídeo inválido");
+    for (let i = 0; i < m.audio.clips.length; i++) {
+      const c = m.audio.clips[i];
+      if (c.arquivo !== `audio_${i}` || !Number.isFinite(c.inicio) || c.inicio < 0 || !Number.isFinite(c.offset) || c.offset < 0 || !Number.isFinite(c.duracao) || c.duracao < 0.05 || c.inicio + c.duracao > m.duracao + 0.001 || !Number.isFinite(c.sourceDuration) || c.offset + c.duracao > c.sourceDuration + 0.01) throw new Error("Corte de áudio inválido");
+      if (c.mediaId !== undefined && !/^[0-9a-f-]{36}$/i.test(c.mediaId)) throw new Error("Mídia remota inválida");
+      if (c.stem !== undefined && !["original", "instrumental"].includes(c.stem)) throw new Error("Faixa de áudio inválida");
+    }
+  }
   return m;
 }

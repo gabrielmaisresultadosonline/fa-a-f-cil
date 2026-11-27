@@ -1,8 +1,9 @@
 import type { OverlayProject } from "./overlays";
 import type { Project } from "./projects";
-import { renderTrilhaWav } from "./sfx";
+import { renderSfxWav } from "./sfx";
 import { getCreds, SERVIDOR_PADRAO } from "./settings";
 import { prepareSceneHtml } from "./sceneLayout";
+import { clipMix, type EditorProject } from "./editor";
 
 export type Engine = "ffmpeg" | "hyperframes";
 export function servidorUrl() { return (getCreds().servidor || SERVIDOR_PADRAO).replace(/\/+$/, ""); }
@@ -51,7 +52,7 @@ export async function prepararOverlay(p: OverlayProject, engine: Engine) {
   fd.append("video", p.video, "video");
   if (p.sons) {
     const ev = overlays.flatMap((o) => (o.sons ?? []).map((s) => ({ t: o.inicio + s.t, tipo: s.tipo })));
-    if (ev.length) fd.append("sfx", await renderTrilhaWav(ev, [], p.duracao), "sfx.wav");
+    if (ev.length) fd.append("sfx", await renderSfxWav(ev, p.duracao), "sfx.wav");
   }
   return fd;
 }
@@ -68,7 +69,43 @@ export async function prepararMotion(p: Project, engine: Engine) {
   fd.append("manifest", JSON.stringify({ nome: p.config.nome, engine, largura: p.config.largura, altura: p.config.altura, duracao: t, fps: 30,
     overlays: camadas.map(({ cena: _c, ...o }) => o) }));
   const ev = p.config.sons ? camadas.flatMap((o) => (o.cena.sons ?? []).map((s) => ({ t: o.inicio + s.t, tipo: s.tipo }))) : [];
-  const falas = p.config.voz ? camadas.flatMap((o) => o.cena.audio ? [{ t: o.inicio, blob: o.cena.audio }] : []) : [];
-  if (ev.length || falas.length) fd.append("sfx", await renderTrilhaWav(ev, falas, t), "trilha.wav");
+  if (ev.length) fd.append("sfx", await renderSfxWav(ev, t), "trilha.wav");
+  return fd;
+}
+
+/** Envia o vídeo da prévia e todos os clipes editados, sem misturar áudio no navegador. */
+export async function prepararEditor(editor: EditorProject, engine: Engine) {
+  const fd = editor.modulo === "motion"
+    ? await (async () => {
+      const { getProject } = await import("./projects");
+      const p = await getProject(editor.alvoId);
+      if (!p) throw new Error("Projeto Motion apagado");
+      return prepararMotion(p, engine);
+    })()
+    : await (async () => {
+      const { getOverlay } = await import("./overlays");
+      const p = await getOverlay(editor.alvoId);
+      if (!p) throw new Error("Projeto Overlay apagado");
+      return prepararOverlay(p, engine);
+    })();
+  fd.delete("sfx");
+  const manifest = JSON.parse(String(fd.get("manifest"))) as Record<string, unknown>;
+  const videoTrack = editor.tracks.find((t) => t.tipo === "video");
+  const clips = editor.tracks.flatMap((track) => track.mudo ? [] : track.clips.map((clip) => ({ clip, track })));
+  const audioClips = clips.map(({ clip, track }, i) => {
+    if (clip.blob) fd.append(`audio_${i}`, clip.blob, `audio_${i}`);
+    else if (!clip.mediaId) throw new Error(`O áudio ${clip.nome} não está disponível`);
+    const mix = clipMix(clip, track);
+    return {
+      arquivo: `audio_${i}`, inicio: clip.inicio, offset: clip.offset, duracao: clip.duracao,
+      sourceDuration: clip.sourceDuration, volume: mix.volume, grave: mix.grave, agudo: mix.agudo,
+      ...(clip.mediaId ? { mediaId: clip.mediaId } : {}), ...(clip.stem ? { stem: clip.stem } : {}),
+    };
+  });
+  manifest["audio"] = {
+    video: { volume: videoTrack?.volume ?? 1, grave: videoTrack?.grave ?? 0, agudo: videoTrack?.agudo ?? 0, mudo: videoTrack?.mudo ?? false },
+    clips: audioClips,
+  };
+  fd.set("manifest", JSON.stringify(manifest));
   return fd;
 }
