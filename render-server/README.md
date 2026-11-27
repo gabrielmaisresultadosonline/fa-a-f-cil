@@ -20,7 +20,7 @@ Use somente músicas próprias, autorizadas ou com licença compatível. O servi
 Se o YouTube responder **Sign in to confirm you're not a bot**, exporte cookies da sua própria sessão com uma extensão compatível e aponte `YTDLP_COOKIES=/caminho/seguro/cookies.txt` antes de iniciar o servidor. Não cole cookies nem tokens no MotionMRO; o arquivo fica somente no servidor. Respeite os termos do YouTube e as licenças do conteúdo.
 
 ### Remover voz com UVR (opcional)
-O repositório UVR indicado no projeto é principalmente uma interface gráfica; para automação no servidor, este programa usa o `audio-separator`, que executa modelos treinados para o UVR. Instale Python 3.10+ e um dos pacotes abaixo:
+O repositório UVR indicado no projeto é principalmente uma interface gráfica; para automação no servidor, este programa usa o `audio-separator`, que executa modelos treinados para o UVR. Instale Python 3.10 a 3.12 (versões mais novas, como a 3.14 do Ubuntu 26.04, ainda não têm os pacotes prontos) e um dos pacotes abaixo:
 
 ```bash
 # CPU

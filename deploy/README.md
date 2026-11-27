@@ -48,7 +48,7 @@ Nesta etapa o app usa somente o IP e HTTP. Quando `motionmro.com.br` estiver apo
 
 ## Limitações desta verificação
 
-- Os scripts e regras são testados no projeto; a execução completa ainda precisa ser conferida em uma VPS Ubuntu 24.04 real.
+- Os scripts e regras são testados no projeto; a execução completa ainda precisa ser conferida em uma VPS Ubuntu real. A remoção de voz usa um Python 3.12 próprio, baixado pelo instalador, mesmo no Ubuntu 26.04.
 - Geração OpenAI depende do token e dos modelos disponíveis na conta do estúdio.
 - Pagamentos reais ficam desligados até HTTPS, domínio e uma compra autorizada de validação.
 - Recuperação de senha por e-mail real exigirá SMTP na etapa seguinte; cadastro e login sem confirmação funcionam sem SMTP.
