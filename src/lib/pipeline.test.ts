@@ -22,7 +22,8 @@ describe("Validated motion generation",()=>{
   it("never saves a failed composition as a ready scene",async()=>{
     mocks.validateSceneLayout.mockResolvedValue(["Textos sobrepostos"]);
     const p=makeProject();await expect(generateScene(p,0)).rejects.toThrow("não aprovada");
-    expect(mocks.saveProject).not.toHaveBeenCalled();
     expect(p.cenas[0]?.html).toBeUndefined();
+    expect(p.cenas[0]?.htmlRejeitado).toContain("<html>");
+    expect(mocks.saveProject).toHaveBeenCalledTimes(1);
   });
 });

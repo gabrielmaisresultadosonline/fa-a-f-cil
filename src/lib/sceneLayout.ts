@@ -22,28 +22,36 @@ export function prepareSceneHtml(html: string, width: number, height: number) {
  const texts=()=>Array.from(content.querySelectorAll('*')).filter(el=>!el.closest('svg')&&!['SCRIPT','STYLE','CANVAS'].includes(el.tagName)&&Array.from(el.childNodes).some(n=>n.nodeType===3&&n.textContent.trim()));
  const fit=()=>{
   viewport();stage.style.transform='none';content.style.transform='none';
-  for(const el of texts()){
-   el.style.minWidth='0';el.style.overflowWrap='anywhere';el.style.whiteSpace='normal';
-   for(let i=0;i<24&&(el.scrollWidth>el.clientWidth+1||el.scrollHeight>el.clientHeight+1);i++){
-    const size=parseFloat(getComputedStyle(el).fontSize);if(!el.clientWidth||!el.clientHeight||size<=12)break;el.style.fontSize=(size*.94)+'px';
-   }
-  }
   const tl=window.__tl, time=tl?.time(), paused=tl?.paused();
   const duration=tl?.duration()||0;
   let left=0,top=0,right=W,bottom=H, count=0;
   const issues=[];
-  const nodes=[...texts(),...content.querySelectorAll('svg,img,[data-motion-essential]')];
-  const samples=duration?[.2,.35,.5,.65,.8]:[0];
+  const nodes=()=>[...texts(),...content.querySelectorAll('svg,img,canvas,[data-motion-essential]')];
+  const samples=duration?[0,.1,.2,.35,.5,.65,.8,.9]:[0];
+  const clips=(el)=>{const s=getComputedStyle(el);return s.overflowX==='hidden'||s.overflowX==='clip'||s.overflowY==='hidden'||s.overflowY==='clip';};
+  const shrink=()=>{for(const el of texts()){
+   if(!clips(el))continue;
+   el.style.minWidth='0';el.style.overflowWrap='anywhere';el.style.whiteSpace='normal';
+   for(let i=0;i<24&&(el.scrollWidth>el.clientWidth+1||el.scrollHeight>el.clientHeight+1);i++){
+    const size=parseFloat(getComputedStyle(el).fontSize);if(!el.clientWidth||!el.clientHeight||size<=12)break;el.style.fontSize=(size*.94)+'px';
+   }
+  }};
+  const fitCheck=()=>{for(const el of texts())if(el.clientWidth&&el.clientHeight&&clips(el)&&(el.scrollWidth>el.clientWidth+2||el.scrollHeight>el.clientHeight+2))issues.push('Texto não cabe no próprio bloco: '+el.textContent.slice(0,100));};
   for(const fraction of samples){
    if(tl)tl.seek(duration*fraction,true);
+   shrink();fitCheck();
    const visibleTexts=texts().filter(el=>{const s=getComputedStyle(el);return s.display!=='none'&&s.visibility!=='hidden'&&Number(s.opacity)>.5;});
    for(let a=0;a<visibleTexts.length;a++)for(let b=a+1;b<visibleTexts.length;b++){
     const first=visibleTexts[a],second=visibleTexts[b];if(first.contains(second)||second.contains(first))continue;
     const r=first.getBoundingClientRect(),s=second.getBoundingClientRect();
     const overlapW=Math.min(r.right,s.right)-Math.max(r.left,s.left),overlapH=Math.min(r.bottom,s.bottom)-Math.max(r.top,s.top);
-    if(overlapW>4&&overlapH>Math.min(r.height,s.height)*.3)issues.push('Blocos de texto sobrepostos: '+first.textContent.slice(0,60)+' / '+second.textContent.slice(0,60));
+    if(overlapW<=4||overlapH<=4)continue;
+    const smaller=Math.min(r.width*r.height,s.width*s.height),overlapArea=overlapW*overlapH;
+    // Tipografia cinética costuma sobrepor palavra gigante de fundo com texto menor na frente; só é problema quando cobre quase todo o bloco menor de tamanho parecido.
+    const sizeRatio=Math.max(r.height,s.height)/Math.max(1,Math.min(r.height,s.height));
+    if(overlapArea>smaller*.6&&sizeRatio<2)issues.push('Blocos de texto sobrepostos: '+first.textContent.slice(0,60)+' / '+second.textContent.slice(0,60));
    }
-   for(const el of nodes){
+   for(const el of nodes()){
     const style=getComputedStyle(el);if(style.display==='none'||style.visibility==='hidden'||Number(style.opacity)===0)continue;
     const r=el.getBoundingClientRect();if(!r.width||!r.height)continue;
     // Large decorative SVG backgrounds may intentionally bleed outside the frame.
@@ -60,7 +68,6 @@ export function prepareSceneHtml(html: string, width: number, height: number) {
   viewport();
   if(!count)issues.push('Nenhum conteúdo visível no quadro.');
   if(scale<.55)issues.push('Composição excede muito o formato e fica pequena após ajuste. Refaça o layout no formato solicitado.');
-  for(const el of texts())if(el.clientWidth&&el.clientHeight&&(el.scrollWidth>el.clientWidth+2||el.scrollHeight>el.clientHeight+2))issues.push('Texto não cabe no próprio bloco: '+el.textContent.slice(0,100));
   for(const img of document.images)if(!img.naturalWidth)issues.push('Imagem não carregou; use SVG ou imagem autocontida válida.');
   window.__motionLayout={width:W,height:H,scale,issues:[...new Set(issues)],samples:samples.length};
   return window.__motionLayout;

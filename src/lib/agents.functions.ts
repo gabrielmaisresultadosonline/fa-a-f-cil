@@ -32,7 +32,7 @@ export const runAgent = createServerFn({ method: "POST" })
       const r = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: { Authorization: `Bearer ${data.token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ model: data.modelo || "gpt-4.1-mini", messages: [{ role: "system", content: system }, { role: "user", content: data.contexto }] }),
+        body: JSON.stringify({ model: data.modelo || "gpt-6.1-terra", messages: [{ role: "system", content: system }, { role: "user", content: data.contexto }] }),
       });
       if (!r.ok) {
         const t = await r.text();

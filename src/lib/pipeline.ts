@@ -4,6 +4,7 @@ import { gerarVoz } from "./tts";
 import type { CustoMeta } from "./costs";
 import { buildMotionBrief } from "./projectBrief";
 import { prepareSceneHtml, validateSceneLayout } from "./sceneLayout";
+import { MODELO_SUPERVISOR } from "./settings";
 
 const meta = (p: Project, etapa: string): CustoMeta => ({ projetoId: p.id, projetoNome: p.config.nome, modulo: "motion", etapa });
 
@@ -75,12 +76,15 @@ export async function generateScene(p: Project, i: number, ajuste?: string) {
   const prev = p.cenas[i - 1]; const next = p.cenas[i + 1];
   const ctx = `DIREÇÃO CRIATIVA:\n${p.direcao}\n\nCENA ${i + 1} de ${p.cenas.length} (duração ${cena.duracao}s):\n${JSON.stringify({ ...cena, html: undefined }, null, 2)}\n\nCena anterior: ${prev?.titulo ?? "nenhuma (abertura)"}\nPróxima cena: ${next?.titulo ?? "nenhuma (encerramento)"}\nIdioma: ${c.idioma}. Velocidade: ${c.velocidade}. Intensidade: ${c.intensidade}.${ajuste ? `\n\nAJUSTE PEDIDO PELO USUÁRIO: ${ajuste}${cena.html ? `\n\nCÓDIGO ATUAL:\n${cena.html.slice(0, 30000)}` : ""}` : ""}`;
   let issues: string[] = [];
+  let html = "";
   for (let attempt = 0; attempt < 2; attempt++) {
     const contexto = attempt ? `${ctx}\n\nCORRIJA O ENQUADRAMENTO. A validação no navegador detectou: ${issues.join(" ")} Refaça a composição no formato ${c.largura}x${c.altura}, com todos os textos e ícones legíveis dentro do quadro.` : ctx;
-    const r = await callAgent({ agente: "desenvolvedor", contexto, largura: c.largura, altura: c.altura }, meta(p, `Dev. de Motion — cena ${i + 1}${attempt ? " — correção de layout" : ""}`));
-    const html = prepareSceneHtml(r.text, c.largura, c.altura);
+    const r = await callAgent({ agente: "desenvolvedor", contexto, largura: c.largura, altura: c.altura, ...(attempt ? { modelo: MODELO_SUPERVISOR } : {}) }, meta(p, `Dev. de Motion — cena ${i + 1}${attempt ? " — correção de layout (supervisor)" : ""}`));
+    html = prepareSceneHtml(r.text, c.largura, c.altura);
     issues = await validateSceneLayout(html, c.largura, c.altura);
-    if (!issues.length) { cena.html = html; await saveProject(p); return; }
+    if (!issues.length) { cena.html = html; cena.htmlRejeitado = undefined; await saveProject(p); return; }
   }
-  throw new Error(`Cena ${i + 1} não aprovada: ${issues.join(" ")}`);
+  cena.htmlRejeitado = html;
+  await saveProject(p);
+  throw new Error(`Cena ${i + 1} não aprovada: ${issues.join(" ")} (HTML rejeitado salvo na cena para inspeção.)`);
 }

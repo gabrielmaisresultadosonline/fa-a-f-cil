@@ -20,6 +20,7 @@ export interface Scene {
   narracao?: string;
   audio?: Blob;
   html?: string;
+  htmlRejeitado?: string;
 }
 
 export interface ProjectConfig {
