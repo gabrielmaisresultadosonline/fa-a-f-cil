@@ -12,13 +12,13 @@ const workdir = join(state, 'backend');
 const config = join(workdir, 'supabase');
 const keyFile = join(state, 'settings-key');
 const command = process.argv[2] || 'help';
-const cli = ['supabase@2.65.5', '--workdir', workdir];
+const cli = ['--workdir', workdir];
 function run(binary, args, options = {}) {
   const result = spawnSync(binary, args, { cwd: root, encoding: 'utf8', ...options });
   if (result.error || result.status !== 0) throw new Error(`Não foi possível executar ${binary}. Consulte os requisitos e o registro privado da instalação.`);
   return result.stdout;
 }
-function backend(args) { return run('bunx', [...cli, ...args]); }
+function backend(args) { return run('C:\\Users\\MRO\\tools\\supabase.exe', [...cli, ...args]); }
 function credentials() {
   if (!existsSync(keyFile)) throw new Error('Execute primeiro: bash deploy/local.sh install');
   const status = JSON.parse(backend(['status', '--output', 'json']));
@@ -57,8 +57,8 @@ try {
     const fd = openSync(join(state, 'install.log'), 'a', 0o600);
     try {
       console.log('Iniciando PostgreSQL, login e arquivos locais. O primeiro download pode demorar.');
-      run('bunx', [...cli, 'start'], { stdio: ['ignore', fd, fd] });
-      run('bunx', [...cli, 'migration', 'up', '--local'], { stdio: ['ignore', fd, fd] });
+      run('C:\\Users\\MRO\\tools\\supabase.exe', [...cli, 'start'], { stdio: ['ignore', fd, fd] });
+      run('C:\\Users\\MRO\\tools\\supabase.exe', [...cli, 'migration', 'up', '--local'], { stdio: ['ignore', fd, fd] });
     } finally { closeSync(fd); }
     const env = credentials();
     const buckets = await api(env, '/storage/v1/bucket');
