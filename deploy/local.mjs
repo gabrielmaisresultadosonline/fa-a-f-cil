@@ -13,12 +13,13 @@ const config = join(workdir, 'supabase');
 const keyFile = join(state, 'settings-key');
 const command = process.argv[2] || 'help';
 const cli = ['--workdir', workdir];
+const supabaseBin = process.env.SUPABASE_CLI || (process.platform === 'win32' ? 'C:\\Users\\MRO\\tools\\supabase.exe' : 'supabase');
 function run(binary, args, options = {}) {
   const result = spawnSync(binary, args, { cwd: root, encoding: 'utf8', ...options });
   if (result.error || result.status !== 0) throw new Error(`Não foi possível executar ${binary}. Consulte os requisitos e o registro privado da instalação.`);
   return result.stdout;
 }
-function backend(args) { return run('C:\\Users\\MRO\\tools\\supabase.exe', [...cli, ...args]); }
+function backend(args) { return run(supabaseBin, [...cli, ...args]); }
 function credentials() {
   if (!existsSync(keyFile)) throw new Error('Execute primeiro: bash deploy/local.sh install');
   const status = JSON.parse(backend(['status', '--output', 'json']));
@@ -57,8 +58,8 @@ try {
     const fd = openSync(join(state, 'install.log'), 'a', 0o600);
     try {
       console.log('Iniciando PostgreSQL, login e arquivos locais. O primeiro download pode demorar.');
-      run('C:\\Users\\MRO\\tools\\supabase.exe', [...cli, 'start'], { stdio: ['ignore', fd, fd] });
-      run('C:\\Users\\MRO\\tools\\supabase.exe', [...cli, 'migration', 'up', '--local'], { stdio: ['ignore', fd, fd] });
+      run(supabaseBin, [...cli, 'start'], { stdio: ['ignore', fd, fd] });
+      run(supabaseBin, [...cli, 'migration', 'up', '--local'], { stdio: ['ignore', fd, fd] });
     } finally { closeSync(fd); }
     const env = credentials();
     const buckets = await api(env, '/storage/v1/bucket');
@@ -71,9 +72,9 @@ try {
     console.log('E-mails de confirmação e recuperação: http://localhost:54324');
     console.log('Somente desenvolvimento. Não exponha estas portas à internet nem use este ambiente como instalação de produção na VPS.');
   } else if (command === 'app') {
-    stream('bun', ['run', 'dev', '--host', '127.0.0.1', '--port', '8080'], credentials());
+    stream('bun', ['run', 'dev', '--host', process.env.APP_HOST || '127.0.0.1', '--port', process.env.APP_PORT || '8080'], credentials());
   } else if (command === 'render') {
-    const env = { ...credentials(), HOST: '127.0.0.1', PORT: '4400', DATA_DIR: join(state, 'renders'), RENDER_CONCURRENCY: '1' };
+    const env = { HOST: '127.0.0.1', PORT: '4400', ...credentials(), DATA_DIR: join(state, 'renders'), RENDER_CONCURRENCY: '1' };
     stream('node', [join(root, 'render-server/server.mjs')], env);
   } else if (command === 'test') {
     stream('node', ['--test', join(root, 'scripts/saas-integration.test.mjs')], credentials());

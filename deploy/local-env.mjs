@@ -27,7 +27,7 @@ export function localEnvironment(status, privateKey, base = {}) {
     MRO_PRIVATE_SETTINGS_KEY: privateKey,
     AUTH_URL: url,
     AUTH_PUBLISHABLE_KEY: publishable,
-    APP_ORIGIN: 'http://localhost:8080',
-    CORS_ORIGINS: 'http://localhost:8080,http://127.0.0.1:8080',
+    APP_ORIGIN: base.APP_ORIGIN || 'http://localhost:8080',
+    CORS_ORIGINS: [base.APP_ORIGIN, 'http://localhost:8080', 'http://127.0.0.1:8080'].filter(Boolean).join(','),
   };
 }
