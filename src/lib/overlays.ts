@@ -9,7 +9,7 @@ export interface OverlayProject {
   transcricao?: Segmento[]; estilo?: string; overlays: Overlay[];
   status: "rascunho" | "produzindo" | "pronto" | "erro"; log: { t: number; msg: string }[];
 }
-export async function saveOverlay(p: OverlayProject) { p.atualizadoEm = Date.now(); await saveCloud("overlay",p.id,p.nome,p); }
+export async function saveOverlay(p: OverlayProject, onUpload?: (percent: number) => void) { p.atualizadoEm = Date.now(); await saveCloud("overlay",p.id,p.nome,p,onUpload); }
 export async function getOverlay(id: string) { return getCloud<OverlayProject>("overlay",id); }
 export async function deleteOverlay(id: string) { await deleteCloud("overlay",id); }
 export async function listOverlays() {

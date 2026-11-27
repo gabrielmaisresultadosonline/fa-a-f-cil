@@ -1,6 +1,7 @@
 import { createId } from "./uuid";
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
+import { uploadSignedBlob } from "./assetUpload";
 
 type Kind = "motion" | "overlay" | "editor" | "job";
 async function owner() {
@@ -9,11 +10,18 @@ async function owner() {
   return data.user.id;
 }
 // Every blob is private and owned by the same account as its project.
-async function pack(value: unknown, prefix: string): Promise<Json> {
+async function pack(value: unknown, prefix: string, onUpload?: (percent: number) => void): Promise<Json> {
   if (value instanceof Blob) {
     const path = `${prefix}/${createId()}`;
-    const { error } = await supabase.storage.from("customer-assets").upload(path, value, { contentType: value.type || "application/octet-stream" });
-    if (error) throw error;
+    const bucket = supabase.storage.from("customer-assets");
+    if (onUpload) {
+      const { data, error } = await bucket.createSignedUploadUrl(path);
+      if (error || !data) throw error ?? new Error("Não foi possível preparar o envio do vídeo.");
+      await uploadSignedBlob(data.signedUrl, value, onUpload);
+    } else {
+      const { error } = await bucket.upload(path, value, { contentType: value.type || "application/octet-stream" });
+      if (error) throw error;
+    }
     return { __asset: path, mime: value.type };
   }
   if (Array.isArray(value)) return Promise.all(value.map((v) => pack(v, prefix)));
@@ -40,23 +48,23 @@ async function unpack(value: Json): Promise<unknown> {
 // Serialize writes per entity; queued edits cannot overwrite a later save.
 const writes = new Map<string, Promise<void>>();
 const blobPaths = new WeakMap<Blob, string>();
-async function packCached(value: unknown, prefix: string): Promise<Json> {
+async function packCached(value: unknown, prefix: string, onUpload?: (percent: number) => void): Promise<Json> {
   if (value instanceof Blob) {
     const cached = blobPaths.get(value);
     if (cached) return { __asset: cached, mime: value.type };
-    const packed = await pack(value, prefix);
+    const packed = await pack(value, prefix, onUpload);
     if (packed && typeof packed === "object" && !Array.isArray(packed) && typeof packed['__asset'] === "string") blobPaths.set(value, packed['__asset']);
     return packed;
   }
-  if (Array.isArray(value)) return Promise.all(value.map((v) => packCached(v, prefix)));
-  if (value && typeof value === "object") return Object.fromEntries(await Promise.all(Object.entries(value).filter(([,v]) => v !== undefined).map(async ([k,v]) => [k, await packCached(v,prefix)])));
+  if (Array.isArray(value)) return Promise.all(value.map((v) => packCached(v, prefix, onUpload)));
+  if (value && typeof value === "object") return Object.fromEntries(await Promise.all(Object.entries(value).filter(([,v]) => v !== undefined).map(async ([k,v]) => [k, await packCached(v,prefix,onUpload)])));
   return value === undefined ? null : value as Json;
 }
-export async function saveCloud(kind: Kind, id: string, name: string, value: unknown) {
+export async function saveCloud(kind: Kind, id: string, name: string, value: unknown, onUpload?: (percent: number) => void) {
   const previous = writes.get(id) ?? Promise.resolve();
   const task = previous.catch(() => {}).then(async () => {
     const userId = await owner();
-    const data = await packCached(value, `${userId}/${id}`);
+    const data = await packCached(value, `${userId}/${id}`, onUpload);
     const { error } = await supabase.from("customer_projects").upsert({ id, kind, name, data, user_id: userId, updated_at: new Date().toISOString() });
     if (error) throw error;
   });

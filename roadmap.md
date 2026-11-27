@@ -1,4 +1,6 @@
 # Roadmap MotionMRO
+## Envio de vídeo no Overlay
+- [x] Mostrar porcentagem real após criar overlays, impedir envios duplicados e informar falhas; oito testes passaram e envio real verificado com conta temporária, recuperando vídeo de 3s/944158 bytes sem erros no navegador
 ## Domínio e HTTPS na VPS
 - [ ] Apontar motionmro.com.br e www para 189.24.24.252; nameservers públicos atuais são a.auto.dns.br e b.auto.dns.br, diferentes dos informados
 - [ ] Executar deploy/configure-domain.sh após o DNS propagar; script preparado, mas não testado numa VPS real
