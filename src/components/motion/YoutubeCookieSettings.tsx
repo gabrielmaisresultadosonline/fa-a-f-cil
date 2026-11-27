@@ -52,7 +52,12 @@ export function YoutubeCookieSettings({ server }: { server: string }) {
         setBusy(true); try { setStatus(await youtubeAdminRequest(server, { method: 'DELETE' })); toast.success('Cookies removidos.'); } catch { toast.error('Não foi possível remover.'); } finally { setBusy(false); }
       }}><Trash2 /></Button>
     </div>
-    {!secure && <p className="text-sm text-destructive">Por segurança, o envio pelo IP sem HTTPS fica bloqueado. Use o auxiliar local ou configure HTTPS antes de enviar pelo administrador.</p>}
+    {!secure && <div className="space-y-3 rounded-md border border-border bg-muted/40 p-4 text-sm">
+      <p className="font-medium">Pelo IP sem HTTPS, importe o arquivo diretamente na VPS.</p>
+      <p className="text-muted-foreground">Assim a sessão não atravessa a internet sem proteção. Copie seu cookies.txt para a VPS e execute no terminal:</p>
+      <pre className="overflow-x-auto rounded-md border border-border bg-background p-3 text-xs">sudo bash /home/motionmro/app/deploy/import-youtube-cookies.sh /root/cookies.txt</pre>
+      <p className="text-muted-foreground">Depois clique em <b>Consultar status</b>. O arquivo já entra ativo, e você pode desativar ou remover por esta tela. Com o domínio HTTPS configurado, o envio pelo navegador volta a ficar disponível.</p>
+    </div>}
     <p className="text-xs text-muted-foreground">Use uma conta dedicada e conteúdo autorizado. Cookies podem expirar; o YouTube pode restringir a conta ou o IP mesmo com cookies. Renove arquivos compartilhados no chat.</p>
   </section>;
 }

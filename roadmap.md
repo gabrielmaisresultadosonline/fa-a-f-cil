@@ -1,5 +1,9 @@
 # Roadmap MotionMRO
+## Domínio e HTTPS na VPS
+- [ ] Apontar motionmro.com.br e www para 189.24.24.252; nameservers públicos atuais são a.auto.dns.br e b.auto.dns.br, diferentes dos informados
+- [ ] Executar deploy/configure-domain.sh após o DNS propagar; script preparado, mas não testado numa VPS real
 ## Download de música do YouTube
+- [ ] Importar cookies pelo terminal enquanto o acesso for por IP/HTTP; wrapper seguro preparado, sem liberar sessões em HTTP aberto
 - [ ] Adicionar envio, ativação e remoção de cookies no admin com verificação de administrador e armazenamento privado criptografado; nunca incluir cookies no código
 - [ ] Integrar auxiliar no computador do usuário com sessão local e envio somente do áudio; não publicar o cookies.txt enviado
 - [ ] Conferir formato do arquivo enviado sem expor dados; orientar renovação da sessão compartilhada no chat

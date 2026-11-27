@@ -1,7 +1,8 @@
 // Importa um cookies.txt do YouTube direto no servidor de renderização, sem UI e sem HTTPS.
 // Útil na VPS acessada pelo IP e em emergências locais; o mesmo arquivo vale para todos os usuários.
 // Uso: node deploy/import-youtube-cookies.mjs <caminho-do-cookies.txt>
-// Na VPS: runuser -u motionmro -- node /home/motionmro/app/deploy/import-youtube-cookies.mjs /root/cookies.txt
+// Na VPS, prefira o wrapper que resolve permissões e remove a cópia temporária:
+// sudo bash /home/motionmro/app/deploy/import-youtube-cookies.sh /root/cookies.txt
 import { readFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';

@@ -50,9 +50,36 @@ sudo journalctl -u motionmro-render -f
 sudo journalctl -u motionmro-db -f
 ```
 
-## Domínio posterior: motionmro.com.br
+## Domínio e HTTPS: motionmro.com.br
 
-Nesta etapa o app usa somente o IP e HTTP. Quando `motionmro.com.br` estiver apontando para a VPS, configuraremos o domínio e HTTPS, atualizaremos os retornos de autenticação e só então validaremos compras reais pela InfinitePay. Não altere DNS nem habilite vendas antes dessa etapa.
+A VPS informada usa o IP público `189.24.24.252`. No provedor DNS, crie:
+
+| Tipo | Nome | Valor |
+| --- | --- | --- |
+| A | `@` | `189.24.24.252` |
+| A | `www` | `189.24.24.252` |
+
+Para usar a Hostinger como DNS, troque no registro do domínio os nameservers para `hermes.dns-parking.com` e `artemis.dns-parking.com` e crie os dois registros na Hostinger. Se preferir manter o DNS atual, basta criar os registros lá. Não é necessário trocar os nameservers e criar registros em dois lugares.
+
+Depois que os dois endereços apontarem para a VPS, execute:
+
+```bash
+sudo bash /home/motionmro/app/deploy/configure-domain.sh motionmro.com.br 189.24.24.252
+```
+
+O comando confere o DNS antes de alterar serviços, atualiza os retornos de autenticação, refaz o build, emite o certificado para o domínio e `www`, ativa HTTPS e coloca a renderização em `https://motionmro.com.br/render`. A porta pública 4400 é fechada ao final. Projetos, contas, chaves e arquivos de clientes são preservados; uma cópia da configuração anterior fica em `/etc/motionmro/domain-backup-*`. O script ainda precisa ser validado numa VPS real.
+
+Só habilite compras reais pela InfinitePay depois de conferir o domínio e o HTTPS.
+
+## Cookies do YouTube enquanto estiver no IP
+
+O navegador não envia uma sessão do YouTube por HTTP público. Copie o `cookies.txt` para a VPS e importe pelo terminal:
+
+```bash
+sudo bash /home/motionmro/app/deploy/import-youtube-cookies.sh /root/cookies.txt
+```
+
+O root faz uma cópia temporária legível pelo serviço, o importador valida e criptografa o arquivo, ativa seu uso e apaga a cópia temporária. O conteúdo nunca é exibido. Depois use **Consultar status** no admin para confirmar; ativação, desativação e remoção continuam disponíveis na tela. Com HTTPS, o envio pelo próprio admin também funciona.
 
 ## Limitações desta verificação
 
