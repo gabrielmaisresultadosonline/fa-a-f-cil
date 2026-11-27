@@ -1,4 +1,6 @@
 # Roadmap MotionMRO
+## Observações no Overlay
+- [x] Adicionar observações opcionais de cores e direção criativa, salvar no projeto e encaminhar ao planejamento e às animações; dez testes passaram, campo e recuperação após recarregar verificados com conta temporária em celular/computador, sem chamadas pagas
 ## Envio de vídeo no Overlay
 - [x] Mostrar porcentagem real após criar overlays, impedir envios duplicados e informar falhas; oito testes passaram e envio real verificado com conta temporária, recuperando vídeo de 3s/944158 bytes sem erros no navegador
 ## Domínio e HTTPS na VPS

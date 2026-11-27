@@ -34,6 +34,7 @@ function OverlayHome() {
   const [duration,setDuration]=useState(0);
   const [file, setFile] = useState<File | null>(null);
   const [nome, setNome] = useState("");
+  const [observacoes, setObservacoes] = useState("");
   const [sons, setSons] = useState(true);
   const [lista, setLista] = useState<OverlayProject[]>([]);
   const [upload, setUpload] = useState<number | null>(null);
@@ -48,7 +49,7 @@ function OverlayHome() {
     const max=info?.admin?600:Math.max(info?.account.trial_seconds??0,sales?(planFor(info?.account.plan??"")?.maxSeconds??0):0);
     if(Math.ceil(m.d)>max){toast.error("Vídeo acima do limite do seu plano ou teste.");return;}
     const p: OverlayProject = { id: createId(), nome: nome || file.name, criadoEm: Date.now(), atualizadoEm: Date.now(), video: file,
-      largura: m.w, altura: m.h, duracao: m.d, sons, overlays: [], status: "rascunho", log: [] };
+      largura: m.w, altura: m.h, duracao: m.d, sons, observacoes: observacoes.trim(), overlays: [], status: "rascunho", log: [] };
     await saveOverlay(p, setUpload);
     await nav({ to: "/overlay/$id", params: { id: p.id }, search: { iniciar: true } });
     } catch (error) {
@@ -68,6 +69,8 @@ function OverlayHome() {
             <input type="file" accept="video/*" disabled={upload !== null} className="hidden" onChange={(e) => {const selected=e.target.files?.[0]??null;setFile(selected);setDuration(0);setUploadError("");if(selected)void meta(selected).then((m)=>setDuration(Math.ceil(m.d))).catch(()=>toast.error("Vídeo inválido."));}} />
           </label>
           <input value={nome} disabled={upload !== null} onChange={(e) => setNome(e.target.value)} placeholder="Nome do projeto" className="mt-4 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
+          <label htmlFor="overlay-observacoes" className="mt-4 block text-sm font-medium">Observações <span className="font-normal text-muted-foreground">(opcional)</span></label>
+          <textarea id="overlay-observacoes" value={observacoes} disabled={upload !== null} onChange={(e) => setObservacoes(e.target.value)} rows={4} placeholder="Ex.: usar verde e branco, títulos fortes e destacar as palavras mais importantes." className="mt-2 w-full min-w-0 resize-y rounded-md border border-input bg-background px-3 py-2 text-sm" />
           <label className="mt-4 flex items-center gap-2 text-sm"><input type="checkbox" disabled={upload !== null} checked={sons} onChange={(e) => setSons(e.target.checked)} className="h-4 w-4 accent-primary" />Criar efeitos sonoros</label>
           <p className="mt-2 text-xs text-muted-foreground">A IA ouve toda a fala, cria overlays animados nos momentos certos, aplica movimentos de câmera no vídeo e sons (se marcado). </p>
           {duration>0&&duration<=600&&<p className="mt-4 text-sm text-accent">{info?.admin?"Produção administrativa":(info?.account.trial_seconds??0)>=duration?`Consumo: ${duration}s de teste`:`Consumo: ${creditCost(duration)} créditos`}</p>}

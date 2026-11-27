@@ -68,4 +68,33 @@ describe("Overlay generation integration", () => {
     expect(p.overlays.every((item) => item.html === "generated")).toBe(true);
     expect(mocks.callAgent).toHaveBeenCalledTimes(3);
   });
+
+  it("sends saved color observations to planning and every animation without the project name", async () => {
+    const p = project();
+    p.observacoes = "Usar verde e branco e títulos fortes.";
+    p.overlays = [];
+    mocks.callAgent.mockResolvedValueOnce({ text: JSON.stringify({ estilo: "Contraste", overlays: [{ inicio: 0, fim: 3, tipo: "titulo", texto: "Disparo em massa", posicao: "centro", modo: "escurecido", descricao: "Destaque", camera: "punch" }] }) });
+    await runOverlayPipeline(p, vi.fn());
+    expect(p.status).toBe("pronto");
+    expect(mocks.callAgent).toHaveBeenCalledTimes(2);
+    for (const call of mocks.callAgent.mock.calls) {
+      const request = call[0] as { contexto: string };
+      expect(request.contexto).toContain("Usar verde e branco e títulos fortes.");
+      expect(request.contexto).not.toContain(p.nome);
+    }
+    expect(mocks.saveOverlay).toHaveBeenLastCalledWith(expect.objectContaining({ observacoes: "Usar verde e branco e títulos fortes." }));
+  });
+
+  it("keeps original observations in regeneration and layout repair alongside the new adjustment", async () => {
+    const p = project();
+    p.observacoes = "Usar verde e branco.";
+    mocks.validateSceneLayout.mockResolvedValueOnce(["Texto fora do quadro"]).mockResolvedValueOnce([]);
+    await generateOverlay(p, 0, "Título maior");
+    expect(mocks.callAgent).toHaveBeenCalledTimes(2);
+    for (const call of mocks.callAgent.mock.calls) {
+      const request = call[0] as { contexto: string };
+      expect(request.contexto).toContain("Usar verde e branco.");
+      expect(request.contexto).toContain("Título maior");
+    }
+  });
 });

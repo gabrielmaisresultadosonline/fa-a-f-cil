@@ -11,6 +11,11 @@ import { centerOverlay, directOverlayPlan } from "./overlayDirection";
 
 const meta = (p: OverlayProject, etapa: string): CustoMeta => ({ projetoId: p.id, projetoNome: p.nome, modulo: "overlay", etapa });
 
+function observationBrief(p: OverlayProject) {
+  const notes = p.observacoes?.trim();
+  return notes ? `\n\nOBSERVAÇÕES DO CLIENTE (direção criativa, não texto para exibir):\n${notes}\nAplique as cores e preferências solicitadas, preservando as regras obrigatórias de contraste, enquadramento e impacto.` : "";
+}
+
 export async function runOverlayPipeline(p: OverlayProject, onUpdate: (p: OverlayProject) => void) {
   const push = async (msg: string) => { p.log.push({ t: Date.now(), msg }); await saveOverlay(p); onUpdate({ ...p }); };
   p.status = "produzindo";
@@ -23,7 +28,7 @@ export async function runOverlayPipeline(p: OverlayProject, onUpdate: (p: Overla
     }
     if (!p.overlays.length) {
       await push("Planejando overlays, câmera e sons…");
-      const ctx = `Vídeo: ${p.largura}x${p.altura}, ${p.duracao.toFixed(1)}s.\nEfeitos sonoros: ${p.sons ? "SIM" : "não"}.\n\nTRANSCRIÇÃO:\n${p.transcricao.map((s) => `[${s.inicio}-${s.fim}] ${s.texto}`).join("\n")}`;
+      const ctx = `Vídeo: ${p.largura}x${p.altura}, ${p.duracao.toFixed(1)}s.\nEfeitos sonoros: ${p.sons ? "SIM" : "não"}.\n\nTRANSCRIÇÃO:\n${p.transcricao.map((s) => `[${s.inicio}-${s.fim}] ${s.texto}`).join("\n")}${observationBrief(p)}`;
       const r = await callAgent({ agente: "overlay_plano", contexto: ctx, largura: p.largura, altura: p.altura }, meta(p, "Planejamento de overlays"));
       const j = JSON.parse(r.text.slice(r.text.indexOf("{"), r.text.lastIndexOf("}") + 1)) as { estilo: string; overlays: Omit<Overlay, "id">[] };
       p.estilo = j.estilo;
@@ -48,7 +53,7 @@ export async function generateOverlay(p: OverlayProject, i: number, ajuste?: str
   if (!saved) throw new Error("Overlay não encontrado.");
   const o = centerOverlay(saved);
   if(!inPipeline)await reserveGeneration({data:{projectId:p.id,seconds:Math.ceil(p.duracao)}});
-  const ctx = `ESTILO: ${p.estilo}\n\nOVERLAY (duração ${(o.fim - o.inicio).toFixed(2)}s):\n${JSON.stringify({ ...o, html: undefined }, null, 2)}${ajuste ? `\n\nAJUSTE PEDIDO: ${ajuste}${o.html ? `\n\nCÓDIGO ATUAL:\n${o.html.slice(0, 30000)}` : ""}` : ""}`;
+  const ctx = `ESTILO: ${p.estilo}\n\nOVERLAY (duração ${(o.fim - o.inicio).toFixed(2)}s):\n${JSON.stringify({ ...o, html: undefined }, null, 2)}${observationBrief(p)}${ajuste ? `\n\nAJUSTE PEDIDO: ${ajuste}${o.html ? `\n\nCÓDIGO ATUAL:\n${o.html.slice(0, 30000)}` : ""}` : ""}`;
   let issues: string[] = [];
   for (let attempt = 0; attempt < 2; attempt++) {
     const contexto = attempt ? `${ctx}\n\nCorrija o layout no formato ${p.largura}x${p.altura}: ${issues.join(" ")} Mantenha textos e ícones dentro do quadro, com texto principal centralizado e fundo cobrindo todo o formato. Não mova a composição para o canto para preservar o rosto.` : ctx;

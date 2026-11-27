@@ -6,7 +6,7 @@ export interface Overlay { id: string; inicio: number; fim: number; tipo: string
 export interface OverlayProject {
   id: string; nome: string; criadoEm: number; atualizadoEm: number;
   video: Blob; largura: number; altura: number; duracao: number; sons: boolean;
-  transcricao?: Segmento[]; estilo?: string; overlays: Overlay[];
+  transcricao?: Segmento[]; estilo?: string; observacoes?: string; overlays: Overlay[];
   status: "rascunho" | "produzindo" | "pronto" | "erro"; log: { t: number; msg: string }[];
 }
 export async function saveOverlay(p: OverlayProject, onUpload?: (percent: number) => void) { p.atualizadoEm = Date.now(); await saveCloud("overlay",p.id,p.nome,p,onUpload); }

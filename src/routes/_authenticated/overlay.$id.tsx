@@ -143,6 +143,10 @@ function OverlayEditor() {
           </div>
         </section>
         <aside className="space-y-4">
+          {p.observacoes && <details className="rounded-lg border border-border bg-card p-4 text-sm">
+            <summary className="cursor-pointer font-semibold">Observações do pedido</summary>
+            <p className="mt-2 whitespace-pre-wrap break-words text-muted-foreground">{p.observacoes}</p>
+          </details>}
           <div className="max-h-48 overflow-auto rounded-lg border border-border bg-card p-3 font-mono text-xs">
             {p.log.slice().reverse().map((l, i) => <div key={i} className="mb-1 text-muted-foreground">{l.msg}</div>)}
           </div>

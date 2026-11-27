@@ -54,3 +54,4 @@ use the editor.
 - The local YouTube companion was removed from the product: the editor downloads YouTube audio only through the server with the admin's configured cookies, and customers add audio by file or microphone. Cookie/browser access never reaches the app or VPS.
 - Admin-supplied YouTube sessions stay AES-GCM encrypted in the render server's private state; authenticated role checks protect status/upload/toggle/delete, status never returns secrets, and new uploads require HTTPS or local transport. Disabling overrides legacy environment cookies for future downloads.
 - Overlay creation reports real byte progress through owner-authorized signed storage uploads; wait for storage and project confirmation before starting AI, so progress never implies a saved project prematurely.
+- Persist optional Overlay observations separately from generated style and forward them to planning, animation and repair, so creative preferences survive regeneration.
