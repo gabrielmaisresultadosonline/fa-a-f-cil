@@ -62,16 +62,18 @@ export async function downloadYoutube(root, value) {
   const id = randomUUID(), dir = mediaDirectory(root, id);
   await mkdir(dir, { recursive: true });
   const output = join(dir, "download.%(ext)s");
-  const args = ["--no-playlist", "--max-filesize", "300M", "--restrict-filenames", "--print", "title", "-f", "bestaudio/best", "-o", output];
+  const args = ["--no-playlist", "--max-filesize", "300M", "--restrict-filenames", "-f", "bestaudio/best", "-o", output];
   if (process.env.YTDLP_COOKIES) args.push("--cookies", process.env.YTDLP_COOKIES);
   args.push(value);
-  const stdout = await run("yt-dlp", args, dir);
+  await run("yt-dlp", args, dir);
+  // O título vem numa chamada separada: com --print o yt-dlp simula e não baixa o arquivo.
+  const title = await run("yt-dlp", ["--no-playlist", "--skip-download", "--print", "title", value], dir).catch(() => "");
   const downloaded = (await readdir(dir)).find((name) => name.startsWith("download.") && !name.endsWith(".part"));
   if (!downloaded) throw new Error("O yt-dlp terminou sem gerar um arquivo de áudio");
   const original = join(dir, "original.wav");
   await run("ffmpeg", ["-y", "-i", join(dir, downloaded), "-vn", "-ac", "2", "-ar", "48000", "-c:a", "pcm_s16le", original], dir);
   const duracao = await probeDuration(original);
-  const lines = stdout.trim().split(/\r?\n/).map((x) => x.trim()).filter(Boolean);
+  const lines = title.trim().split(/\r?\n/).map((x) => x.trim()).filter(Boolean);
   const info = { id, nome: lines.at(-1)?.slice(0, 180) || "Música do YouTube", duracao, criadoEm: Date.now(), origem: value, instrumentalDisponivel: false };
   await writeFile(join(dir, "info.json"), JSON.stringify(info));
   return info;
