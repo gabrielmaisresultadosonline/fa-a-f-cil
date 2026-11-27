@@ -55,6 +55,13 @@ if [[ -z ${MRO_INSTALLER_REEXEC:-} ]] && ! cmp -s "$0" "$APP_DIR/deploy/vps-inst
 fi
 
 echo '== 4/8 Bun, backend, yt-dlp e UVR =='
+# UVR voice removal needs memory headroom; small VPSs ship without swap and the kernel kills it.
+if ! swapon --noheadings --show | grep -q . && [[ ! -e /swapfile ]]; then
+  echo "Criando 4 GB de memória extra (swap) para a remoção de voz..."
+  (fallocate -l 4G /swapfile || dd if=/dev/zero of=/swapfile bs=1M count=4096) && chmod 600 /swapfile && mkswap /swapfile >/dev/null && swapon /swapfile \
+    && { grep -q '^/swapfile ' /etc/fstab || echo '/swapfile none swap sw 0 0' >> /etc/fstab; } \
+    || echo "Aviso: não foi possível criar a swap; músicas longas podem falhar ao remover a voz."
+fi
 # Somente caches recriáveis; projetos, banco e arquivos de clientes não são tocados.
 apt-get clean
 rm -rf "$APP_HOME/.cache/pip"

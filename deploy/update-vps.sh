@@ -62,6 +62,13 @@ echo '== 3/4 Build de produção =='
 runuser -u $APP_USER -- "${BUILD_ENV[@]}" node $APP_DIR/deploy/local.mjs build
 
 echo '== 4/4 Reiniciar serviços e conferir =='
+# UVR voice removal needs memory headroom; small VPSs ship without swap and the kernel kills it.
+if ! swapon --noheadings --show | grep -q . && [[ ! -e /swapfile ]]; then
+  echo "Criando 4 GB de memória extra (swap) para a remoção de voz..."
+  (fallocate -l 4G /swapfile || dd if=/dev/zero of=/swapfile bs=1M count=4096) && chmod 600 /swapfile && mkswap /swapfile >/dev/null && swapon /swapfile \
+    && { grep -q '^/swapfile ' /etc/fstab || echo '/swapfile none swap sw 0 0' >> /etc/fstab; } \
+    || echo "Aviso: não foi possível criar a swap; músicas longas podem falhar ao remover a voz."
+fi
 systemctl restart motionmro-app motionmro-render
 for i in {1..60}; do curl -fsS http://127.0.0.1:8080/ >/dev/null 2>&1 && break; sleep 2; done
 curl -fsS http://127.0.0.1:8080/ >/dev/null || { echo 'App não iniciou. Consulte: journalctl -u motionmro-app -e'; exit 1; }

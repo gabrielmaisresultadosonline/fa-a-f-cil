@@ -123,16 +123,31 @@ export async function separateVocals(root, id) {
   const dir = mediaDirectory(root, id), info = await mediaInfo(root, id);
   const instrumental = join(dir, "instrumental.wav");
   if (await stat(instrumental).then(() => true, () => false)) return { ...info, instrumentalDisponivel: true };
-  const separated = join(dir, "separated"); await mkdir(separated, { recursive: true });
   const command = process.env.AUDIO_SEPARATOR_COMMAND || "audio-separator";
   const model = process.env.UVR_MODEL || "UVR-MDX-NET-Inst_HQ_4.onnx";
   const modelsDir = process.env.UVR_MODEL_DIR || resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "uvr-models");
   await mkdir(modelsDir, { recursive: true });
-  await run(command, [join(dir, "original.wav"), "--model_filename", model, "--model_file_dir", modelsDir, "--output_dir", separated, "--output_format=WAV"], dir);
-  const names = await readdir(separated);
-  const source = names.find((name) => /instrumental|accompaniment|other/i.test(name) && /\.(wav|mp3|flac|ogg)$/i.test(name));
-  if (!source) throw new Error(`O UVR não gerou a faixa instrumental. Arquivos recebidos: ${names.join(", ").slice(0, 300)}`);
-  await run("ffmpeg", ["-y", "-i", join(separated, source), "-ac", "2", "-ar", "48000", "-c:a", "pcm_s16le", instrumental], dir);
+  // UVR loads the whole track into RAM (~2.7 GB for a song), which gets killed on small VPSs.
+  // Separate short chunks one at a time and join them, keeping memory bounded.
+  const work = join(dir, "separated"); await rm(work, { recursive: true, force: true }); await mkdir(work, { recursive: true });
+  const chunkSeconds = String(Math.max(10, Number(process.env.UVR_CHUNK_SECONDS) || 45));
+  try {
+    await run("ffmpeg", ["-y", "-i", join(dir, "original.wav"), "-ac", "2", "-ar", "44100", "-c:a", "pcm_s16le", "-f", "segment", "-segment_time", chunkSeconds, join(work, "part%03d.wav")], dir);
+    const parts = (await readdir(work)).filter((n) => /^part\d+\.wav$/.test(n)).sort();
+    const outputs = [];
+    for (const part of parts) {
+      const out = join(work, part.replace(".wav", "")); await mkdir(out, { recursive: true });
+      await run(command, [join(work, part), "--model_filename", model, "--model_file_dir", modelsDir, "--output_dir", out, "--output_format=WAV"], dir);
+      const names = await readdir(out);
+      const source = names.find((name) => /instrumental|accompaniment|other/i.test(name) && /\.(wav|mp3|flac|ogg)$/i.test(name));
+      if (!source) throw new Error(`O UVR não gerou a faixa instrumental. Arquivos recebidos: ${names.join(", ").slice(0, 300)}`);
+      outputs.push(join(out, source));
+    }
+    if (!outputs.length) throw new Error("Áudio vazio para remover a voz.");
+    const list = join(work, "list.txt");
+    await writeFile(list, outputs.map((f) => `file '${f.replace(/'/g, "'\\''")}'`).join("\n"));
+    await run("ffmpeg", ["-y", "-f", "concat", "-safe", "0", "-i", list, "-ac", "2", "-ar", "48000", "-c:a", "pcm_s16le", instrumental], dir);
+  } finally { await rm(work, { recursive: true, force: true }); }
   const next = { ...info, instrumentalDisponivel: true, modeloUvr: model };
   await writeFile(join(dir, "info.json"), JSON.stringify(next));
   return next;
