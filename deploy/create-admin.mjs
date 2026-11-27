@@ -1,15 +1,17 @@
-// Cria/confirma a conta admin local. Uso: node deploy/create-admin.mjs email senha
-import { readFileSync } from 'node:fs';
+// Cria/confirma a conta admin local. Uso: node deploy/create-admin.mjs email [senha]
+// A senha também pode vir de MRO_ADMIN_PASSWORD (evita exposição na lista de processos).
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 import { localCredentials } from './local-env.mjs';
 
-const [email, password] = process.argv.slice(2);
+const [email, passwordArg] = process.argv.slice(2);
+const password = process.env.MRO_ADMIN_PASSWORD || passwordArg;
 if (!email || !password) { console.error('Uso: node deploy/create-admin.mjs email senha'); process.exit(1); }
 
 const workdir = join(homedir(), '.local', 'share', 'motionmro', 'backend');
-const statusRaw = spawnSync('C:\\Users\\MRO\\tools\\supabase.exe', ['--workdir', workdir, 'status', '--output', 'json'], { encoding: 'utf8' });
+const supabaseBin = process.env.SUPABASE_CLI || (process.platform === 'win32' ? 'C:\\Users\\MRO\\tools\\supabase.exe' : 'supabase');
+const statusRaw = spawnSync(supabaseBin, ['--workdir', workdir, 'status', '--output', 'json'], { encoding: 'utf8' });
 if (statusRaw.status !== 0) { console.error('Falha ao ler status local.'); process.exit(1); }
 const { url, service } = localCredentials(JSON.parse(statusRaw.stdout));
 
