@@ -174,7 +174,7 @@ function OverlayEditor() {
           {o && (
             <div className="space-y-2 rounded-lg border border-border bg-card p-4 text-sm">
               <h3 className="font-semibold text-primary">{o.texto}</h3>
-              <p className="text-xs text-muted-foreground">{o.tipo} · {o.posicao} · câmera: {o.camera}{o.sons?.length ? ` · sons: ${o.sons.map((s) => s.tipo).join(", ")}` : ""}</p>
+              <p className="text-xs text-muted-foreground">{o.tipo} · {o.modo ?? "texto"} · {o.posicao} · câmera: {o.camera}{o.sons?.length ? ` · sons: ${o.sons.map((s) => s.tipo).join(", ")}` : ""}</p>
               <textarea value={ajuste} onChange={(e) => setAjuste(e.target.value)} rows={3} placeholder="Peça um ajuste neste overlay" className="w-full rounded-md border border-input bg-background p-2 text-sm" />
               <button onClick={regen} disabled={busy} className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-gradient-primary px-3 py-2 font-semibold text-primary-foreground disabled:opacity-40">
                 {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}{ajuste ? "Aplicar ajuste" : "Regenerar overlay"}</button>

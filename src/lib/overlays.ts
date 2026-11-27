@@ -2,7 +2,7 @@ import { get, set, del, keys } from "idb-keyval";
 import type { Som } from "./sfx";
 
 export interface Segmento { inicio: number; fim: number; texto: string }
-export interface Overlay { id: string; inicio: number; fim: number; tipo: string; texto: string; posicao: string; descricao: string; camera: string; sons?: Som[]; html?: string }
+export interface Overlay { id: string; inicio: number; fim: number; tipo: string; texto: string; posicao: string; modo?: "texto" | "escurecido" | "tela-cheia"; descricao: string; camera: string; sons?: Som[]; html?: string }
 export interface OverlayProject {
   id: string; nome: string; criadoEm: number; atualizadoEm: number;
   video: Blob; largura: number; altura: number; duracao: number; sons: boolean;
