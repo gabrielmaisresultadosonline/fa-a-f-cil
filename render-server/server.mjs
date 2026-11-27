@@ -214,7 +214,8 @@ async function bodyJson(req) {
   return JSON.parse(body || "{}");
 }
 
-http.createServer(async (req, res) => {
+const separations = new Map();
+const server = http.createServer(async (req, res) => {
   cors(req,res);
   if (req.method === "OPTIONS") { res.writeHead(204); return res.end(); }
   const path = new URL(req.url || "/", "http://localhost").pathname;
@@ -268,7 +269,21 @@ http.createServer(async (req, res) => {
       mediaDirectory(MEDIA_DIR, id);
       await assertMediaOwner(MEDIA_DIR,id,user);
       if (req.method === "GET" && !action) return json(res, 200, await mediaInfo(MEDIA_DIR, id));
-      if (req.method === "POST" && action === "separate") return json(res, 200, await separateVocals(MEDIA_DIR, id));
+      if (req.method === "POST" && action === "separate") {
+        // UVR on CPU can exceed HTTP timeouts, so run it in the background and let the editor poll.
+        const info = await mediaInfo(MEDIA_DIR, id);
+        if (info.instrumentalDisponivel) return json(res, 200, info);
+        const state = separations.get(id);
+        if (state?.erro) { separations.delete(id); return json(res, 400, { erro: state.erro }); }
+        if (!state) {
+          separations.set(id, { running: true });
+          separateVocals(MEDIA_DIR, id).then(() => separations.delete(id), (e) => {
+            console.warn("UVR falhou:", e?.message || e);
+            separations.set(id, { erro: "Não foi possível remover a voz desta música no servidor. Verifique se o UVR foi instalado (rode o atualizador) e tente novamente." });
+          });
+        }
+        return json(res, 202, { ...info, separando: true });
+      }
       if (req.method === "GET" && action === "audio") {
         const stem = new URL(req.url || "/", "http://localhost").searchParams.get("stem") === "instrumental" ? "instrumental" : "original";
         const { file, stream } = streamMediaAudio(MEDIA_DIR, id, stem);
@@ -338,4 +353,6 @@ http.createServer(async (req, res) => {
     if (!res.headersSent) json(res, 400, { erro: String(e?.message || e) });
     else res.destroy();
   }
-}).listen(PORT, HOST, () => console.log(`MotionMRO render v3 em http://${HOST}:${PORT} · dados: ${DATA_DIR} · workers: ${queue.concurrency}`));
+});
+server.requestTimeout = 0;
+server.listen(PORT, HOST, () => console.log(`MotionMRO render v3 em http://${HOST}:${PORT} · dados: ${DATA_DIR} · workers: ${queue.concurrency}`));

@@ -22,8 +22,14 @@ export async function downloadYoutubeAudio(url: string): Promise<RemoteAudio> {
 }
 
 export async function separateVocals(mediaId: string): Promise<RemoteAudio> {
-  const response = await renderFetch(`${servidorUrl()}/media/${mediaId}/separate`, { method: "POST" });
-  return await responseJson(response) as RemoteAudio;
+  // The server separates in the background; poll until the instrumental exists (up to ~40 min).
+  for (let i = 0; i < 480; i++) {
+    const response = await renderFetch(`${servidorUrl()}/media/${mediaId}/separate`, { method: "POST" });
+    const data = await responseJson(response) as RemoteAudio & { separando?: boolean };
+    if (!data.separando) return data;
+    await new Promise((r) => setTimeout(r, 5000));
+  }
+  throw new Error("A remoção de voz demorou demais. Tente novamente.");
 }
 
 /** Only audio leaves the user's computer; the uploaded record retains the existing UVR flow. */
