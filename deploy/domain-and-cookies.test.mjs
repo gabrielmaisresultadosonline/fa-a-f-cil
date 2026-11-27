@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs';
 const domain = readFileSync(new URL('./configure-domain.sh', import.meta.url), 'utf8');
 const cookies = readFileSync(new URL('./import-youtube-cookies.sh', import.meta.url), 'utf8');
 const settings = readFileSync(new URL('../render-server/youtube-settings.mjs', import.meta.url), 'utf8');
+const admin = readFileSync(new URL('../src/components/motion/YoutubeCookieSettings.tsx', import.meta.url), 'utf8');
 
 test('domain setup targets motionmro.com.br and requires both DNS records before changing services', () => {
   assert.match(domain, /DOMAIN=\$\{1:-motionmro\.com\.br\}/);
@@ -33,4 +34,10 @@ test('plain public HTTP cookie upload remains blocked', () => {
   assert.match(settings, /A new browser credential must not cross the public IP over plain HTTP/);
   assert.match(settings, /if \(!local\) return false/);
   assert.match(settings, /x-forwarded-proto'\] === 'https'/);
+});
+
+test('admin shows the terminal alternative when accessed by plain IP', () => {
+  assert.match(admin, /Pelo IP sem HTTPS, importe o arquivo diretamente na VPS/);
+  assert.match(admin, /import-youtube-cookies\.sh \/root\/cookies\.txt/);
+  assert.match(admin, /Consultar status/);
 });
