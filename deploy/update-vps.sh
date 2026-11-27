@@ -28,7 +28,7 @@ set +a
 BUILD_ENV=(env "PATH=$PATH" "SUPABASE_CLI=${SUPABASE_CLI:-$APP_HOME/.local/bin/supabase}" "MRO_DEPLOYMENT_MODE=vps" "MRO_PUBLIC_AUTH_URL=${MRO_PUBLIC_AUTH_URL:-}" "APP_ORIGIN=${APP_ORIGIN:-}" "TMPDIR=$STATE/tmp")
 
 echo '== 1/4 Código mais novo do GitHub =='
-BEFORE=$(runuser -u $APP_USER -- git -C $APP_DIR rev-parse HEAD)
+BEFORE=${MRO_UPDATE_BEFORE:-$(runuser -u $APP_USER -- git -C $APP_DIR rev-parse HEAD)}
 runuser -u $APP_USER -- git -C $APP_DIR fetch origin main
 if ! runuser -u $APP_USER -- git -C $APP_DIR merge --ff-only origin/main; then
   echo 'Havia alterações locais no código da VPS; elas serão descartadas para usar a versão do GitHub.'
@@ -36,6 +36,12 @@ if ! runuser -u $APP_USER -- git -C $APP_DIR merge --ff-only origin/main; then
   runuser -u $APP_USER -- git -C $APP_DIR merge --ff-only origin/main
 fi
 AFTER=$(runuser -u $APP_USER -- git -C $APP_DIR rev-parse HEAD)
+# A versão já instalada pode não conhecer novas etapas de atualização.
+if [[ -z ${MRO_UPDATE_REEXEC:-} ]] && ! cmp -s "$0" "$APP_DIR/deploy/update-vps.sh"; then
+  NEW_COPY=$(mktemp /tmp/motionmro-update.XXXXXX.sh)
+  cp "$APP_DIR/deploy/update-vps.sh" "$NEW_COPY"
+  exec env MRO_UPDATE_COPY=1 MRO_UPDATE_REEXEC=1 MRO_UPDATE_BEFORE="$BEFORE" bash "$NEW_COPY" "$@"
+fi
 if [[ $BEFORE == $AFTER ]]; then
   echo 'O código já estava na versão mais nova.'
 else
@@ -44,6 +50,7 @@ else
 fi
 
 echo '== 2/4 Dependências e banco =='
+bash "$APP_DIR/deploy/update-youtube.sh" "$APP_USER" "$STATE/audio-env"
 runuser -u $APP_USER -- "${BUILD_ENV[@]}" bash -c "cd $APP_DIR && bun install --frozen-lockfile"
 NEW_MIGRATIONS=$(runuser -u $APP_USER -- git -C $APP_DIR diff --name-only "$BEFORE" "$AFTER" -- deploy/local/migrations || true)
 if [[ -n $NEW_MIGRATIONS ]]; then

@@ -1,9 +1,10 @@
 import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { createReadStream } from "node:fs";
-import { copyFile, mkdir, readFile, readdir, stat, writeFile } from "node:fs/promises";
+import { chmod, copyFile, mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { youtubeArguments, youtubeError } from "./youtube.mjs";
 
 export const validMediaId = (id) => /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
 
@@ -61,15 +62,23 @@ export async function mediaInfo(root, id) {
 export async function downloadYoutube(root, value) {
   if (!validYoutubeUrl(value)) throw new Error("Cole um link válido de um vídeo do YouTube");
   const id = randomUUID(), dir = mediaDirectory(root, id);
-  await mkdir(dir, { recursive: true });
-  const output = join(dir, "download.%(ext)s");
-  const args = ["--no-playlist", "--max-filesize", "300M", "--restrict-filenames", "-f", "bestaudio/best", "-o", output];
-  if (process.env.YTDLP_COOKIES) args.push("--cookies", process.env.YTDLP_COOKIES);
-  args.push(value);
-  await run("yt-dlp", args, dir);
-  // O título vem numa chamada separada: com --print o yt-dlp simula e não baixa o arquivo.
-  const title = await run("yt-dlp", ["--no-playlist", "--skip-download", "--print", "title", value], dir).catch(() => "");
-  const downloaded = (await readdir(dir)).find((name) => name.startsWith("download.") && !name.endsWith(".part"));
+  await mkdir(dir, { recursive: true, mode: 0o700 });
+  const cookieFile = process.env.YTDLP_COOKIES ? join(dir, ".youtube-cookies.txt") : undefined;
+  try {
+  if (cookieFile) {
+    // yt-dlp rewrites cookie jars: isolate concurrent downloads and delete the temporary session.
+    try {
+      await copyFile(process.env.YTDLP_COOKIES, cookieFile);
+      await chmod(cookieFile, 0o600);
+    } catch {
+      throw new Error("Os cookies do YouTube não estão acessíveis no servidor. Peça ao administrador para configurar novamente o arquivo privado.");
+    }
+  }
+  let title;
+  try {
+    title = await run("yt-dlp", youtubeArguments(join(dir, "download.%(ext)s"), value, cookieFile), dir, () => {});
+  } catch (error) { throw youtubeError(error); }
+  const downloaded = (await readdir(dir)).find((name) => /^download\.(webm|m4a|mp4|mp3|ogg|opus|wav|flac|aac)$/i.test(name));
   if (!downloaded) throw new Error("O yt-dlp terminou sem gerar um arquivo de áudio");
   const original = join(dir, "original.wav");
   await run("ffmpeg", ["-y", "-i", join(dir, downloaded), "-vn", "-ac", "2", "-ar", "48000", "-c:a", "pcm_s16le", original], dir);
@@ -78,6 +87,12 @@ export async function downloadYoutube(root, value) {
   const info = { id, nome: lines.at(-1)?.slice(0, 180) || "Música do YouTube", duracao, criadoEm: Date.now(), origem: value, instrumentalDisponivel: false };
   await writeFile(join(dir, "info.json"), JSON.stringify(info));
   return info;
+  } catch (error) {
+    await rm(dir, { recursive: true, force: true });
+    throw error;
+  } finally {
+    if (cookieFile) await rm(cookieFile, { force: true });
+  }
 }
 
 export async function separateVocals(root, id) {

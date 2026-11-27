@@ -1,10 +1,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, mkdir, readFile, writeFile, chmod, rm } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, readdir, writeFile, chmod, rm } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { mixEditorAudio, probeDuration, run, separateVocals, validYoutubeUrl } from "./audio.mjs";
+import { downloadYoutube, mixEditorAudio, probeDuration, run, separateVocals, validYoutubeUrl } from "./audio.mjs";
 import { validateManifest } from "./jobs.mjs";
 
 const base = { nome: "Teste", engine: "ffmpeg", largura: 320, altura: 180, duracao: 4, fps: 30, overlays: [] };
@@ -14,6 +14,50 @@ test("accepts only YouTube HTTP links for music downloads", () => {
   assert.equal(validYoutubeUrl("https://youtu.be/abc"), true);
   assert.equal(validYoutubeUrl("https://example.com/video"), false);
   assert.equal(validYoutubeUrl("file:///etc/passwd"), false);
+});
+
+test('YouTube adapter downloads once, converts to WAV, isolates cookies and cleans failed downloads', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'motion-youtube-test-'));
+  const oldPath = process.env.PATH, oldCookies = process.env.YTDLP_COOKIES;
+  try {
+    const mediaRoot = join(root, 'media'); await mkdir(mediaRoot);
+    await run('ffmpeg', ['-y', '-f', 'lavfi', '-i', 'sine=frequency=440:duration=1', join(root, 'source.wav')], root);
+    const cookies = join(root, 'cookies.txt'); await writeFile(cookies, '# Netscape HTTP Cookie File\n');
+    const fake = join(root, 'yt-dlp');
+    await writeFile(fake, `#!/usr/bin/env node
+import {appendFileSync,copyFileSync,writeFileSync} from 'node:fs';
+import {dirname,join} from 'node:path';
+const args=process.argv.slice(2),root=dirname(process.argv[1]);
+appendFileSync(join(root,'calls.jsonl'),JSON.stringify(args)+'\\n');
+const cookie=args[args.indexOf('--cookies')+1];
+writeFileSync(cookie,'temporary changed jar');
+if(args.at(-1).includes('blocked')){process.stderr.write("Sign in to confirm you're not a bot. synthetic-test-marker");process.exit(1);}
+copyFileSync(join(root,'source.wav'),args[args.indexOf('-o')+1].replace('%(ext)s','wav'));
+console.log('Música de teste');
+`);
+    await chmod(fake, 0o755);
+    process.env.PATH = `${root}:${oldPath || ''}`; process.env.YTDLP_COOKIES = cookies;
+    const info = await downloadYoutube(mediaRoot, 'https://youtu.be/im45iuYwIZg');
+    assert.equal(info.nome, 'Música de teste');
+    assert.equal(info.duracao, 1);
+    assert.equal(await probeDuration(join(mediaRoot, info.id, 'original.wav')), 1);
+    assert.deepEqual((await readdir(join(mediaRoot, info.id))).sort(), ['download.wav', 'info.json', 'original.wav']);
+    const calls = (await readFile(join(root, 'calls.jsonl'), 'utf8')).trim().split('\n').map(JSON.parse);
+    assert.equal(calls.length, 1);
+    const args = calls[0];
+    assert.equal(args[args.indexOf('--js-runtimes') + 1], `node:${process.execPath}`);
+    assert.notEqual(args[args.indexOf('--cookies') + 1], cookies);
+    assert.equal(await readFile(cookies, 'utf8'), '# Netscape HTTP Cookie File\n');
+    await assert.rejects(downloadYoutube(mediaRoot, 'https://youtu.be/blocked'), (error) => {
+      assert.match(error.message, /configurar ou renovar os cookies/);
+      assert.ok(!error.message.includes('synthetic-test-marker')); return true;
+    });
+    assert.deepEqual(await readdir(mediaRoot), [info.id]);
+  } finally {
+    if (oldPath === undefined) delete process.env.PATH; else process.env.PATH = oldPath;
+    if (oldCookies === undefined) delete process.env.YTDLP_COOKIES; else process.env.YTDLP_COOKIES = oldCookies;
+    await rm(root, { recursive: true, force: true });
+  }
 });
 
 test("validates concrete audio cuts and rejects audio beyond the source", () => {

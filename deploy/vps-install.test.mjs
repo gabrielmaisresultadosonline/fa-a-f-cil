@@ -4,6 +4,13 @@ import { readFileSync } from 'node:fs';
 
 const script = readFileSync(new URL('./vps-install.sh', import.meta.url), 'utf8');
 
+test('every installer includes the YouTube EJS dependency group', () => {
+  for (const file of ['vps-install.sh', 'install-vps-ubuntu.sh', 'install-ubuntu.sh']) {
+    assert.match(readFileSync(new URL(`./${file}`, import.meta.url), 'utf8'), /yt-dlp\[default\]/);
+  }
+  assert.match(script, /deploy\/update-youtube\.sh/);
+});
+
 test('VPS accepts Ubuntu 24.04 and 26.04 LTS', () => {
   assert.match(script, /\^\(24\|26\)\\\.04\$/);
   assert.match(script, /Ubuntu 24\.04 ou 26\.04 LTS/);

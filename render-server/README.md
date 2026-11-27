@@ -12,12 +12,26 @@ Renderiza **Motion IA**, **Video Overlay IA** e o **Vídeo editor** em MP4 com *
 Instale o [yt-dlp](https://github.com/yt-dlp/yt-dlp) e confirme `yt-dlp --version`. Exemplo com Python:
 
 ```bash
-python -m pip install --no-cache-dir -U yt-dlp
+python -m pip install --no-cache-dir -U 'yt-dlp[default]'
 ```
 
 Use somente músicas próprias, autorizadas ou com licença compatível. O servidor aceita apenas links HTTP/HTTPS de `youtube.com`, `music.youtube.com` e `youtu.be`, sem playlist, com limite de 300 MB. O áudio é convertido para WAV e guardado em `data/media/<id>/original.wav`.
 
-Se o YouTube responder **Sign in to confirm you're not a bot**, exporte cookies da sua própria sessão com uma extensão compatível e aponte `YTDLP_COOKIES=/caminho/seguro/cookies.txt` antes de iniciar o servidor. Não cole cookies nem tokens no MotionMRO; o arquivo fica somente no servidor. Respeite os termos do YouTube e as licenças do conteúdo.
+O MotionMRO ativa explicitamente o Node 22+ já instalado e usa EJS incluído em `yt-dlp[default]`. O atualizador da VPS atualiza ambos os pacotes sem reinstalar UVR. O título e o áudio são obtidos na mesma chamada.
+
+Se o YouTube responder **Sign in to confirm you're not a bot**, atualizar o programa pode não bastar: o YouTube pode restringir o IP da VPS. Para conteúdo próprio ou autorizado, siga a [orientação oficial sobre exportação de cookies](https://github.com/yt-dlp/yt-dlp/wiki/Extractors#exporting-youtube-cookies). Cookies dão acesso à sessão da conta: prefira uma conta dedicada e nunca envie o arquivo no chat, ao repositório ou aos clientes.
+
+Na VPS, envie o arquivo Netscape pelo seu programa de transferência para uma pasta privada e instale-o (substitua `/caminho/do/arquivo.txt` pelo arquivo enviado):
+
+```bash
+sudo install -d -o motionmro -g motionmro -m 700 /home/motionmro/.local/share/motionmro/youtube
+sudo install -o motionmro -g motionmro -m 600 /caminho/do/arquivo.txt /home/motionmro/.local/share/motionmro/youtube/cookies.txt
+sudo sed -i '/^YTDLP_COOKIES=/d' /etc/motionmro/render.env
+echo 'YTDLP_COOKIES=/home/motionmro/.local/share/motionmro/youtube/cookies.txt' | sudo tee -a /etc/motionmro/render.env >/dev/null
+sudo systemctl restart motionmro-render
+```
+
+Remova a cópia enviada depois da instalação. Renove o arquivo quando a sessão expirar. Cada download usa uma cópia privada temporária, removida ao terminar; o original não é alterado por downloads concorrentes. Não há garantia de acesso mesmo com cookies, e vídeos privados/restritos continuam sujeitos às regras do YouTube. Como alternativa, use o envio de arquivo de áudio no editor. Em localhost, defina `YTDLP_COOKIES` antes de iniciar o servidor.
 
 ### Remover voz com UVR (opcional)
 O repositório UVR indicado no projeto é principalmente uma interface gráfica; para automação no servidor, este programa usa o `audio-separator`, que executa modelos treinados para o UVR. Instale Python 3.10 a 3.12 (versões mais novas, como a 3.14 do Ubuntu 26.04, ainda não têm os pacotes prontos) e um dos pacotes abaixo:

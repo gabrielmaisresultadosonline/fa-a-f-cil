@@ -93,7 +93,7 @@ UV_ENV="HOME=$APP_HOME UV_NO_CONFIG=1 UV_PYTHON_INSTALL_DIR=$STATE/python UV_CAC
 if [[ ! -x $VENV/bin/yt-dlp || ! -x $VENV/bin/audio-separator ]] || ! $VENV/bin/python -c 'import sys; sys.exit(sys.version_info[:2] != (3, 12))' 2>/dev/null; then
   rm -rf $VENV
   runuser -u $APP_USER -- env $UV_ENV $UV_BIN venv --seed --python 3.12 $VENV
-  runuser -u $APP_USER -- env $UV_ENV $VENV/bin/pip install --no-cache-dir --quiet 'yt-dlp' audioread
+  runuser -u $APP_USER -- env $UV_ENV $VENV/bin/pip install --no-cache-dir --quiet 'yt-dlp[default]' audioread
   if ! runuser -u $APP_USER -- env $UV_ENV $VENV/bin/pip install --no-cache-dir --quiet 'audio-separator[cpu]>=0.48,<1'; then
     echo 'Aviso: a remoção de voz (UVR) não pôde ser instalada agora; todo o restante continua funcionando.'
     echo 'Execute o mesmo comando depois para tentar instalar novamente.'
@@ -102,6 +102,7 @@ if [[ ! -x $VENV/bin/yt-dlp || ! -x $VENV/bin/audio-separator ]] || ! $VENV/bin/
 fi
 
 echo '== 5/8 Dependências do app, FFmpeg/HyperFrames e navegador de renderização =='
+bash "$APP_DIR/deploy/update-youtube.sh" "$APP_USER" "$VENV"
 runuser -u $APP_USER -- bash -c "export PATH=$APP_HOME/.bun/bin:\$PATH && cd $APP_DIR && bun install --frozen-lockfile"
 runuser -u $APP_USER -- bash -c "export PUPPETEER_CACHE_DIR=$STATE/puppeteer && cd $APP_DIR/render-server && npm ci --omit=dev && npx --yes puppeteer browsers install chrome && npx --yes hyperframes@0.9.100 --help >/dev/null"
 

@@ -51,9 +51,10 @@ echo '== 4/6 Ambiente Python (yt-dlp + UVR) =='
 VENV=$USER_HOME/.local/share/motionmro/audio-env
 if [[ ! -x $VENV/bin/audio-separator ]]; then
   runuser -u "$USER_NAME" -- python3 -m venv "$VENV"
-  runuser -u "$USER_NAME" -- "$VENV/bin/pip" install --no-cache-dir --quiet 'yt-dlp' 'audio-separator[cpu]>=0.48,<1' audioread
+  runuser -u "$USER_NAME" -- "$VENV/bin/pip" install --no-cache-dir --quiet 'yt-dlp[default]' 'audio-separator[cpu]>=0.48,<1' audioread
 fi
 install -d -o "$USER_NAME" -g "$USER_NAME" "$USER_HOME/.local/share/motionmro/uvr-models"
+bash "$ROOT/deploy/update-youtube.sh" "$USER_NAME" "$VENV"
 
 echo '== 5/6 Dependências do app e renderização =='
 runuser -u "$USER_NAME" -- bash -c "export PATH=\"$USER_HOME/.bun/bin:\$PATH\" && cd '$ROOT' && bun install"
