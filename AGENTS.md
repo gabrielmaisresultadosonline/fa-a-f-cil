@@ -55,3 +55,4 @@ use the editor.
 - Admin-supplied YouTube sessions stay AES-GCM encrypted in the render server's private state; authenticated role checks protect status/upload/toggle/delete, status never returns secrets, and new uploads require HTTPS or local transport. Disabling overrides legacy environment cookies for future downloads.
 - Overlay creation reports real byte progress through owner-authorized signed storage uploads; wait for storage and project confirmation before starting AI, so progress never implies a saved project prematurely.
 - Persist optional Overlay observations separately from generated style and forward them to planning, animation and repair, so creative preferences survive regeneration.
+- Regeneration percentages reflect milestones, not elapsed time; report 100 only after saving and finalization.

@@ -1,4 +1,6 @@
 # Roadmap MotionMRO
+## Progresso da regeneração do Overlay
+- [x] Mostrar progresso por etapas em regenerar/aplicar ajuste, incluindo correção, salvamento, conclusão e falha; oito testes passaram, tela verificada com conta temporária no início e erro de OpenAI não configurada, sem chamadas pagas
 ## Observações no Overlay
 - [x] Adicionar observações opcionais de cores e direção criativa, salvar no projeto e encaminhar ao planejamento e às animações; dez testes passaram, campo e recuperação após recarregar verificados com conta temporária em celular/computador, sem chamadas pagas
 ## Envio de vídeo no Overlay

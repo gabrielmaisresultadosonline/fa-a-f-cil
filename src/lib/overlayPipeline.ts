@@ -48,19 +48,30 @@ export async function runOverlayPipeline(p: OverlayProject, onUpdate: (p: Overla
   }
 }
 
-export async function generateOverlay(p: OverlayProject, i: number, ajuste?: string,inPipeline=false) {
+export interface OverlayProgress { percent: number; stage: string }
+
+export async function generateOverlay(p: OverlayProject, i: number, ajuste?: string,inPipeline=false, onProgress?: (progress: OverlayProgress) => void) {
   const saved = p.overlays[i];
   if (!saved) throw new Error("Overlay não encontrado.");
   const o = centerOverlay(saved);
+  onProgress?.({ percent: 0, stage: "Preparando regeneração…" });
   if(!inPipeline)await reserveGeneration({data:{projectId:p.id,seconds:Math.ceil(p.duracao)}});
   const ctx = `ESTILO: ${p.estilo}\n\nOVERLAY (duração ${(o.fim - o.inicio).toFixed(2)}s):\n${JSON.stringify({ ...o, html: undefined }, null, 2)}${observationBrief(p)}${ajuste ? `\n\nAJUSTE PEDIDO: ${ajuste}${o.html ? `\n\nCÓDIGO ATUAL:\n${o.html.slice(0, 30000)}` : ""}` : ""}`;
   let issues: string[] = [];
   for (let attempt = 0; attempt < 2; attempt++) {
+    onProgress?.({ percent: attempt ? 75 : 15, stage: attempt ? "Corrigindo enquadramento…" : "Gerando animação…" });
     const contexto = attempt ? `${ctx}\n\nCorrija o layout no formato ${p.largura}x${p.altura}: ${issues.join(" ")} Mantenha textos e ícones dentro do quadro, com texto principal centralizado e fundo cobrindo todo o formato. Não mova a composição para o canto para preservar o rosto.` : ctx;
     const r = await callAgent({ agente: "overlay_dev", contexto, largura: p.largura, altura: p.altura }, meta(p, `Overlay ${i + 1}${attempt ? " — correção de layout" : ""}`));
     const html = prepareSceneHtml(r.text, p.largura, p.altura);
+    onProgress?.({ percent: attempt ? 85 : 65, stage: "Verificando o resultado…" });
     issues = await validateSceneLayout(html, p.largura, p.altura);
-    if (!issues.length) { o.html = html; p.overlays[i] = o; await saveOverlay(p);if(!inPipeline && p.status==="pronto")await completeGeneration({data:{projectId:p.id}}); return; }
+    if (!issues.length) {
+      onProgress?.({ percent: 90, stage: "Salvando overlay…" });
+      o.html = html; p.overlays[i] = o; await saveOverlay(p);
+      if(!inPipeline && p.status==="pronto")await completeGeneration({data:{projectId:p.id}});
+      onProgress?.({ percent: 100, stage: "Overlay atualizado" });
+      return;
+    }
   }
   throw new Error(`Overlay ${i + 1} não aprovado: ${issues.join(" ")}`);
 }

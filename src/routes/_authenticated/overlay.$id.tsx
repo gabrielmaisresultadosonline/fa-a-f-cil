@@ -8,7 +8,7 @@ import { RenderStatus } from "@/components/motion/RenderStatus";
 import { Button } from "@/components/ui/button";
 import { SfxToggle } from "@/components/motion/SfxToggle";
 import { getOverlay, saveOverlay, type OverlayProject } from "@/lib/overlays";
-import { generateOverlay, runOverlayPipeline } from "@/lib/overlayPipeline";
+import { generateOverlay, runOverlayPipeline, type OverlayProgress } from "@/lib/overlayPipeline";
 import { scheduleSons } from "@/lib/sfx";
 import { enfileirar } from "@/lib/queue";
 import { prepareSceneHtml } from "@/lib/sceneLayout";
@@ -43,6 +43,8 @@ function OverlayEditor() {
   const { iniciar } = Route.useSearch();
   const [p, setP] = useState<OverlayProject | null | undefined>(undefined);
   const [busy, setBusy] = useState(false);
+  const [regenProgress, setRegenProgress] = useState<OverlayProgress | null>(null);
+  const [regenError, setRegenError] = useState("");
   const [active, setActive] = useState(-1);
   const [sel, setSel] = useState(0);
   const [ajuste, setAjuste] = useState("");
@@ -100,10 +102,11 @@ function OverlayEditor() {
     finally { setSrv(false); }
   }
   async function regen() {
-    if (!p) return; setBusy(true);
-    try { await generateOverlay(p, sel, ajuste || undefined); setP({ ...p }); setAjuste(""); toast.success("Overlay atualizado"); }
-    catch (e) { toast.error(e instanceof Error ? e.message : "Erro"); }
-    setBusy(false);
+    if (!p || busy) return; setBusy(true); setRegenError("");
+    setRegenProgress({ percent: 0, stage: "Preparando regeneração…" });
+    try { await generateOverlay(p, sel, ajuste || undefined, false, setRegenProgress); setP({ ...p }); setAjuste(""); toast.success("Overlay atualizado"); }
+    catch (e) { const message = e instanceof Error ? e.message : "Não foi possível regenerar o overlay."; setRegenError(message); toast.error(message); }
+    finally { setBusy(false); }
   }
 
   return (
@@ -134,7 +137,7 @@ function OverlayEditor() {
           <div className="flex gap-2 overflow-x-auto rounded-lg border border-border bg-card p-3">
             {p.overlays.length === 0 && <span className="text-sm text-muted-foreground">{busy ? "A IA está ouvindo o vídeo…" : "Sem overlays ainda."}</span>}
             {p.overlays.map((x, i) => (
-              <button key={x.id} data-sel={i === sel} onClick={() => { setSel(i); if (video.current) video.current.currentTime = x.inicio; }}
+              <button key={x.id} disabled={busy} data-sel={i === sel} onClick={() => { setSel(i); setRegenProgress(null); setRegenError(""); if (video.current) video.current.currentTime = x.inicio; }}
                 className="min-w-[130px] rounded-md border border-border bg-secondary p-2 text-left text-xs data-[sel=true]:border-primary">
                 <div className="font-mono text-muted-foreground">{x.inicio.toFixed(1)}–{x.fim.toFixed(1)}s {!x.html && busy && <Loader2 className="inline h-3 w-3 animate-spin" />}</div>
                 <div className="mt-1 truncate font-medium">{x.texto}</div>
@@ -154,9 +157,15 @@ function OverlayEditor() {
             <div className="space-y-2 rounded-lg border border-border bg-card p-4 text-sm">
               <h3 className="font-semibold text-primary">{o.texto}</h3>
               <p className="text-xs text-muted-foreground">{o.tipo} · {o.modo ?? "texto"} · {o.posicao} · câmera: {o.camera}{o.sons?.length ? ` · sons: ${o.sons.map((s) => s.tipo).join(", ")}` : ""}</p>
-              <textarea value={ajuste} onChange={(e) => setAjuste(e.target.value)} rows={3} placeholder="Peça um ajuste neste overlay" className="w-full rounded-md border border-input bg-background p-2 text-sm" />
-              <button onClick={regen} disabled={busy} className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-gradient-primary px-3 py-2 font-semibold text-primary-foreground disabled:opacity-40">
-                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}{ajuste ? "Aplicar ajuste" : "Regenerar overlay"}</button>
+              <textarea value={ajuste} disabled={busy} onChange={(e) => setAjuste(e.target.value)} rows={3} placeholder="Peça um ajuste neste overlay" className="w-full rounded-md border border-input bg-background p-2 text-sm" />
+              <Button onClick={regen} disabled={busy} className="w-full whitespace-normal bg-gradient-primary font-semibold text-primary-foreground">
+                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}{busy && regenProgress ? `Regenerando ${regenProgress.percent}%` : ajuste ? "Aplicar ajuste" : "Regenerar overlay"}</Button>
+              {regenProgress && <div role="status" aria-live="polite" className="space-y-2 pt-2">
+                <div className="flex flex-wrap items-center justify-between gap-2 text-xs"><span>{regenError ? "Regeneração interrompida" : regenProgress.stage}</span><span className="font-mono text-primary">{regenProgress.percent}%</span></div>
+                <progress aria-label="Progresso da regeneração" max={100} value={regenProgress.percent} className="h-2 w-full overflow-hidden rounded-full [&::-webkit-progress-bar]:bg-secondary [&::-webkit-progress-value]:bg-primary [&::-moz-progress-bar]:bg-primary" />
+                <p className="text-xs text-muted-foreground">Progresso por etapas</p>
+              </div>}
+              {regenError && <p role="alert" className="break-words text-xs text-destructive">{regenError}</p>}
             </div>
           )}
           {p.transcricao && (

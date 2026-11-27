@@ -97,4 +97,25 @@ describe("Overlay generation integration", () => {
       expect(request.contexto).toContain("Título maior");
     }
   });
+
+  it("reports completed regeneration stages and waits for saving before 100 percent", async () => {
+    const progress = vi.fn();
+    let finishSave: (() => void) | undefined;
+    mocks.saveOverlay.mockImplementationOnce(() => new Promise<void>((resolve) => { finishSave = resolve; }));
+    const promise = generateOverlay(project(), 0, undefined, false, progress);
+    await vi.waitFor(() => expect(progress).toHaveBeenLastCalledWith({ percent: 90, stage: "Salvando overlay…" }));
+    expect(progress.mock.calls.map((call) => call[0].percent)).toEqual([0, 15, 65, 90]);
+    if (!finishSave) throw new Error("Save not started");
+    finishSave();
+    await promise;
+    expect(progress).toHaveBeenLastCalledWith({ percent: 100, stage: "Overlay atualizado" });
+  });
+
+  it("reports repair stages without reaching 100 when validation fails", async () => {
+    const progress = vi.fn();
+    mocks.validateSceneLayout.mockResolvedValue(["Texto fora do quadro"]);
+    await expect(generateOverlay(project(), 0, undefined, false, progress)).rejects.toThrow("não aprovado");
+    expect(progress.mock.calls.map((call) => call[0].percent)).toEqual([0, 15, 65, 75, 85]);
+    expect(mocks.saveOverlay).not.toHaveBeenCalled();
+  });
 });
