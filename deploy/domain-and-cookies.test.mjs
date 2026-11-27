@@ -30,6 +30,12 @@ test('terminal cookie import never prints the session and removes its temporary 
   assert.doesNotMatch(cookies, /cat \$|echo .*\$\(cat|base64/);
 });
 
+test('terminal cookie import shows the file age and deletes the uploaded file after success', () => {
+  assert.match(cookies, /Arquivo recebido em:/);
+  assert.match(cookies, /AGE_MIN > 30/);
+  assert.ok(cookies.indexOf('shred -u "$SOURCE"') > cookies.indexOf('import-youtube-cookies.mjs" "$TEMP"'));
+});
+
 test('plain public HTTP cookie upload remains blocked', () => {
   assert.match(settings, /A new browser credential must not cross the public IP over plain HTTP/);
   assert.match(settings, /if \(!local\) return false/);
