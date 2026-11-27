@@ -34,3 +34,8 @@ test('unknown extractor errors do not expose diagnostics', () => {
   assert.ok(!message.includes('synthetic-test-marker'));
   assert.match(message, /arquivo de áudio autorizado/);
 });
+test('rotated cookies get a specific renewal message', async () => {
+  const { youtubeError } = await import('./youtube.mjs');
+  const e = youtubeError(new Error('WARNING: The provided YouTube account cookies are no longer valid.\nERROR: Sign in to confirm you’re not a bot'));
+  assert.match(e.message, /expiraram/);
+});

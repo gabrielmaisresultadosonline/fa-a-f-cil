@@ -12,6 +12,9 @@ export function youtubeArguments(output, url, cookieFile) {
 /** Never send extractor diagnostics (which can include session data) to customers. */
 export function youtubeError(error) {
   const message = String(error?.message || error);
+  if (/cookies are no longer valid|rotated in the browser/i.test(message)) {
+    return new Error("Os cookies do YouTube configurados no servidor expiraram. O administrador precisa exportar um cookies.txt novo (em janela anônima, fechando-a logo depois) e importar novamente.");
+  }
   if (/confirm you.?re not a bot|sign in|cookies.*(expired|invalid)|login required/i.test(message)) {
     return new Error("O YouTube exigiu confirmação de acesso para este link. O administrador precisa configurar ou renovar os cookies do YouTube no servidor. Você também pode adicionar um arquivo de áudio autorizado pelo editor.");
   }
