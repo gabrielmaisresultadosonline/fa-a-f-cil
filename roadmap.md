@@ -1,5 +1,6 @@
 # Roadmap MotionMRO
 ## Download de música do YouTube
+- [ ] Adicionar envio, ativação e remoção de cookies no admin com verificação de administrador e armazenamento privado criptografado; nunca incluir cookies no código
 - [ ] Integrar auxiliar no computador do usuário com sessão local e envio somente do áudio; não publicar o cookies.txt enviado
 - [ ] Conferir formato do arquivo enviado sem expor dados; orientar renovação da sessão compartilhada no chat
 - [x] Ativar Node/EJS, atualizar yt-dlp nos três instaladores e no atualizador, proteger cookies e testar download/conversão: 27 testes passaram; aviso de runtime ausente no teste real do link informado

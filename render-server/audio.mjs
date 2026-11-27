@@ -59,16 +59,18 @@ export async function mediaInfo(root, id) {
   return JSON.parse(await readFile(join(mediaDirectory(root, id), "info.json"), "utf8"));
 }
 
-export async function downloadYoutube(root, value) {
+export async function downloadYoutube(root, value, options = {}) {
   if (!validYoutubeUrl(value)) throw new Error("Cole um link válido de um vídeo do YouTube");
   const id = randomUUID(), dir = mediaDirectory(root, id);
   await mkdir(dir, { recursive: true, mode: 0o700 });
-  const cookieFile = process.env.YTDLP_COOKIES ? join(dir, ".youtube-cookies.txt") : undefined;
+  const environmentFile = options.allowEnvironment !== false ? process.env.YTDLP_COOKIES : undefined;
+  const cookieFile = options.cookies || environmentFile ? join(dir, ".youtube-cookies.txt") : undefined;
   try {
   if (cookieFile) {
     // yt-dlp rewrites cookie jars: isolate concurrent downloads and delete the temporary session.
     try {
-      await copyFile(process.env.YTDLP_COOKIES, cookieFile);
+      if (options.cookies) await writeFile(cookieFile, options.cookies, { mode: 0o600 });
+      else await copyFile(environmentFile, cookieFile);
       await chmod(cookieFile, 0o600);
     } catch {
       throw new Error("Os cookies do YouTube não estão acessíveis no servidor. Peça ao administrador para configurar novamente o arquivo privado.");

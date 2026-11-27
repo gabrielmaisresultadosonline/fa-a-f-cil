@@ -56,7 +56,7 @@ function VideoEditor() {
   const [px, setPx] = useState(18);
   const [busy, setBusy] = useState("");
   const [youtube, setYoutube] = useState("");
-  const [youtubeSource, setYoutubeSource] = useState<"local" | "server">("local");
+  const [youtubeSource, setYoutubeSource] = useState<"local" | "server">("server");
   const [helperOpen, setHelperOpen] = useState(false);
   const [recording, setRecording] = useState(false);
   const [recordSeconds, setRecordSeconds] = useState(0);

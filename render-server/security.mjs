@@ -10,6 +10,13 @@ export async function authenticate(req) {
   const user=await response.json();if(!user.id)throw new Error("Sessão inválida.");
   return {id:user.id,bearer};
 }
+export async function assertAdministrator(user) {
+  const response = await fetch(`${process.env.AUTH_URL}/rest/v1/rpc/has_role`, {
+    method: 'POST', headers: { apikey: process.env.AUTH_PUBLISHABLE_KEY, Authorization: user.bearer, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ _user_id: user.id, _role: 'admin' }), signal: AbortSignal.timeout(8000),
+  });
+  if (!response.ok || await response.json() !== true) throw new Error('Acesso restrito à administração.');
+}
 export async function ownedCloudRow(user,table,id) {
   if(!/^[0-9a-f-]{36}$/i.test(id))throw new Error("Identificador inválido.");
   const response=await fetch(`${process.env.AUTH_URL}/rest/v1/${table}?id=eq.${id}&user_id=eq.${user.id}&select=*&limit=1`,{headers:{apikey:process.env.AUTH_PUBLISHABLE_KEY,Authorization:user.bearer},signal:AbortSignal.timeout(8000)});

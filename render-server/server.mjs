@@ -9,14 +9,16 @@ import { Readable } from "node:stream";
 import puppeteer from "puppeteer";
 import { RenderQueue, validJobId, validateManifest } from "./jobs.mjs";
 import { copyMediaIntoJob, downloadYoutube, importLocalAudio, mediaDirectory, mediaInfo, mixEditorAudio, separateVocals, streamMediaAudio } from "./audio.mjs";
-import { authenticate,assertOwner,assertMediaOwner,ownedCloudRow,retentionExpired,authorizedGeneration } from "./security.mjs";
+import { authenticate,assertAdministrator,assertOwner,assertMediaOwner,ownedCloudRow,retentionExpired,authorizedGeneration } from "./security.mjs";
 import { PaymentChecks } from "./payments.mjs";
+import { YoutubeSettings, secureCookieUpload } from './youtube-settings.mjs';
 
 const PORT = Number(process.env.PORT || 4400);
 const HOST = process.env.HOST || "127.0.0.1";
 const DATA_DIR = resolve(process.env.DATA_DIR || "./data");
 const MEDIA_DIR = join(DATA_DIR, "media");
 const MAX_UPLOAD = Number(process.env.MAX_UPLOAD_MB || 512) * 1024 * 1024;
+const youtubeSettings = new YoutubeSettings(DATA_DIR);
 
 function run(cmd, args, cwd, onOutput) {
   return new Promise((res, rej) => {
@@ -219,12 +221,28 @@ http.createServer(async (req, res) => {
   if (req.method === "GET" && path === "/") return json(res, 200, { ok: true, app: "motionmro-render", version: 4, backgroundQueue: true, mediaTools: true,secureAccounts:true,retentionDays:2 });
   try {
     const user=await authenticate(req);
+    if (path === '/admin/youtube') {
+      await assertAdministrator(user);
+      if (req.method === 'GET') return json(res, 200, await youtubeSettings.status());
+      if (req.method === 'DELETE') return json(res, 200, await youtubeSettings.remove());
+      if (req.method === 'PATCH') { const body = await bodyJson(req); return json(res, 200, await youtubeSettings.setEnabled(body.enabled)); }
+      if (req.method === 'POST') {
+        if (!secureCookieUpload(req)) throw new Error('Envio de cookies exige HTTPS ou localhost. Use o auxiliar local enquanto estiver pelo IP.');
+        const chunks = []; let received = 0;
+        for await (const chunk of req) { received += chunk.length; if (received > 1024 * 1024 + 100_000) throw new Error('Arquivo de sessão acima de 1 MB.'); chunks.push(chunk); }
+        const form = await new Request('http://localhost', { method: 'POST', headers: { 'Content-Type': req.headers['content-type'] || '' }, body: Buffer.concat(chunks) }).formData();
+        const file = form.get('cookies');
+        if (!file || typeof file === 'string') throw new Error('Selecione um arquivo cookies.txt.');
+        return json(res, 200, await youtubeSettings.save(Buffer.from(await file.arrayBuffer())));
+      }
+      return json(res, 405, { erro: 'Operação indisponível.' });
+    }
     if(req.method==="POST"&&path==="/payment-checks"){
       const body=await bodyJson(req);await ownedCloudRow(user,"payment_orders",body.id);await checks.add(body.id,body.key,user.id);return json(res,202,{accepted:true});
     }
     if (req.method === "POST" && path === "/media/youtube") {
       const body = await bodyJson(req);
-      const media=await downloadYoutube(MEDIA_DIR, String(body.url || ""));await writeFile(join(MEDIA_DIR,media.id,"owner.json"),JSON.stringify({user_id:user.id}));return json(res,201,media);
+      const media=await downloadYoutube(MEDIA_DIR, String(body.url || ""), await youtubeSettings.downloadOptions());await writeFile(join(MEDIA_DIR,media.id,"owner.json"),JSON.stringify({user_id:user.id}));return json(res,201,media);
     }
     if (req.method === 'POST' && path === '/media/upload') {
       const max = 300 * 1024 * 1024 + 100_000;
