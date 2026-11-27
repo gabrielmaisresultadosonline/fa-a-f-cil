@@ -1,4 +1,8 @@
 # Roadmap MotionMRO
+## Impacto do Overlay
+- [x] Centralizar novas composições e regenerações, alternando escurecimento e fundo sólido de tela inteira
+- [x] Reforçar transições de texto e fundo sem alterar áudio, câmera, editor ou exportação
+- [x] Verificar planejamento, regeneração e preservação dos projetos existentes: 24 testes passaram; geração OpenAI real continua pendente do token do estúdio
 ## Ambiente independente local
 - [x] Preparar instalação isolada de PostgreSQL, autenticação e arquivos privados em localhost
 - [x] Criar inicialização do app e renderização com credenciais locais, sem alterar o ambiente Cloud

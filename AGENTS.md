@@ -46,3 +46,4 @@ use the editor.
 - Apply sceneLayout's idempotent canvas guard to preview, HTML export and server uploads; validate new Motion/Overlay HTML in a sandboxed iframe and allow one logged same-model repair before rejecting it so layout quality is not assumed from model price.
 - Scope public-page lighting and motion styles under public-experience; share MotionShowcase for the animated composition so studio styling and account operations remain unchanged.
 - Local development tooling must reject remote backend URLs, pass service credentials only to server processes, preserve the local encryption key and keep schema snapshots in deploy/local; development stacks are not VPS production deployments.
+- Share Overlay direction and plan normalization in overlayDirection; center new/regenerated compositions and mix full-frame dimming with opaque solid backgrounds, without rewriting saved HTML on load, so smaller models cannot fall back to corner-only plans.
