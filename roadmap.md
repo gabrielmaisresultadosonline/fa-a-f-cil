@@ -1,4 +1,8 @@
 # Roadmap MotionMRO
+## Renovação visual pública
+- [x] Refinar vendas, cadastro e login com composição tecnológica e luzes, sem alterar acesso ou regras
+- [x] Verificar navegação, formulários e apresentação em celular, tablet e computador
+
 ## Área de clientes e vendas
 - [x] Testar primeiro em localhost: login admin/cliente, resgate de teste, projetos privados e render FFmpeg com download pela UI
 - [x] Ativar armazenamento em nuvem e contas com nome, e-mail e WhatsApp

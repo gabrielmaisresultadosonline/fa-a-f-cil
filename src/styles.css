@@ -113,6 +113,11 @@
   --gradient-primary: linear-gradient(135deg, oklch(0.86 0.17 90), oklch(0.74 0.18 55));
   --gradient-stage: radial-gradient(ellipse at 50% 0%, oklch(0.22 0.03 260), oklch(0.11 0.008 260) 70%);
   --shadow-glow: 0 0 40px -8px color-mix(in oklab, var(--primary) 55%, transparent);
+  --public-surface: oklch(0.12 0.004 260);
+  --public-panel: oklch(0.17 0.006 260);
+  --public-edge: oklch(0.84 0.17 85 / 26%);
+  --public-light: linear-gradient(110deg, transparent 15%, oklch(0.84 0.17 85 / 10%) 48%, oklch(0.72 0.14 200 / 7%) 55%, transparent 80%);
+  --public-shadow: 0 20px 80px oklch(0 0 0 / 25%), 0 0 32px oklch(0.84 0.17 85 / 5%);
 }
 
 @layer base {
@@ -156,3 +161,49 @@
 .render-progress::-moz-progress-bar { background: var(--primary); }
 @media (prefers-reduced-motion: reduce) { .render-progress::-webkit-progress-value { transition: none; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; } }
+
+.public-experience { background: var(--public-surface); isolation: isolate; }
+.public-experience .public-wrap { width: min(100% - 48px, 1200px); margin-inline: auto; }
+.public-brand { display: inline-flex; align-items: center; gap: 10px; font-size: 22px; font-weight: 700; white-space: nowrap; }
+.public-brand > svg { width: 34px; height: 34px; padding: 7px; border: 1px solid var(--public-edge); border-radius: 8px; color: var(--primary); background: var(--primary); color: var(--primary-foreground); }
+.public-experience .public-cta { min-height: 48px; box-shadow: 0 0 24px color-mix(in oklab, var(--primary) 14%, transparent); transition: transform .2s, box-shadow .2s; }
+.public-experience .public-cta:hover { transform: translateY(-2px); box-shadow: var(--shadow-glow); }
+.public-hero { position: relative; min-height: 620px; height: min(720px, calc(100svh - 145px)); overflow: hidden; border-block: 1px solid var(--border); }
+.public-hero::before, .public-auth::before { content: ''; position: absolute; inset: 0; background: var(--public-light); pointer-events: none; }
+.public-hero::after { content: ''; position: absolute; bottom: 0; left: 8%; width: 84%; height: 1px; background: linear-gradient(90deg, transparent, var(--primary), var(--accent), transparent); opacity: .6; }
+.public-eyebrow { display: flex; align-items: center; gap: 9px; font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; color: var(--accent); }
+.public-eyebrow::before { content: ''; width: 18px; height: 1px; background: currentColor; }
+.public-title { font-size: 72px; line-height: 1.06; font-weight: 600; }
+.public-feature { position: relative; border-top: 1px solid var(--border); padding-block: 28px; transition: border-color .25s; }
+.public-feature:hover { border-color: var(--primary); }
+.public-auth { position: relative; overflow: hidden; }
+.public-auth-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 460px); gap: 72px; align-items: center; min-height: calc(100svh - 172px); padding-block: 40px; }
+.public-auth-story { position: relative; align-self: stretch; display: flex; flex-direction: column; justify-content: center; min-height: 540px; }
+.public-auth-story canvas { inset: auto 0 0; height: 240px; opacity: .8; }
+.public-auth-story-copy { position: relative; z-index: 1; padding-bottom: 215px; }
+.public-auth-panel { position: relative; background: var(--public-panel); border: 1px solid var(--border); border-top-color: var(--public-edge); border-radius: 8px; padding: 32px; box-shadow: var(--public-shadow); }
+.public-auth-panel::before { content: ''; position: absolute; top: -1px; left: 24%; width: 52%; height: 1px; background: linear-gradient(90deg, transparent, var(--primary), transparent); }
+.public-auth-input { margin-top: 8px; height: 48px; width: 100%; border: 1px solid var(--input); border-radius: 6px; background: var(--public-surface); padding: 0 14px 0 42px; outline: none; transition: border-color .2s, box-shadow .2s; }
+.public-auth-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px color-mix(in oklab, var(--primary) 10%, transparent); }
+.public-auth-input::placeholder { color: var(--muted-foreground); opacity: .6; }
+.public-input-icon { position: absolute; left: 14px; top: 24px; width: 16px; height: 16px; color: var(--muted-foreground); pointer-events: none; }
+@media (min-width: 1600px) { .public-hero { height: 690px; } }
+@media (max-width: 1023px) { .public-title { font-size: 58px; } .public-auth-grid { gap: 32px; grid-template-columns: minmax(0, 1fr) minmax(0, 420px); } .public-auth-story h1 { font-size: 38px; } }
+@media (max-width: 767px) {
+  .public-experience .public-wrap { width: calc(100% - 40px); }
+  .public-brand { font-size: 19px; gap: 8px; }
+  .public-hero { height: auto; min-height: 0; }
+  .public-title { font-size: 40px; }
+  .public-hero > .public-wrap { padding-top: 32px; padding-bottom: 190px; }
+  .public-hero .public-title { margin-top: 22px; }
+  .public-hero .public-title + p { margin-top: 18px; font-size: 14px; line-height: 24px; }
+  .public-hero .public-title + p + div { margin-top: 24px; flex-wrap: nowrap; gap: 10px; }
+  .public-hero .public-title + p + div a { padding-inline: 16px; font-size: 12px; }
+  .public-hero canvas { inset: auto 0 0; height: 175px; }
+  .public-auth-grid { grid-template-columns: minmax(0, 1fr); gap: 28px; padding-top: 24px; }
+  .public-auth-story { min-height: auto; }
+  .public-auth-story-copy { padding-bottom: 0; }
+  .public-auth-story canvas { display: none; }
+  .public-auth-story h1 { font-size: 34px; }
+  .public-auth-panel { padding: 24px; }
+}

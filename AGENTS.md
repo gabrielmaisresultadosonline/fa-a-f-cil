@@ -44,3 +44,4 @@ use the editor.
 - Store an immutable creation-config snapshot with new Motion projects; request viewing and reuse use that snapshot with legacy config fallback so later edits do not erase the original input.
 - Build Motion generation briefs through the shared projectBrief helper, excluding organizational names, and append shared creation constraints to every agent's system prompt so metadata stays outside rendered content.
 - Apply sceneLayout's idempotent canvas guard to preview, HTML export and server uploads; validate new Motion/Overlay HTML in a sandboxed iframe and allow one logged same-model repair before rejecting it so layout quality is not assumed from model price.
+- Scope public-page lighting and motion styles under public-experience; share MotionShowcase for the animated composition so studio styling and account operations remain unchanged.
