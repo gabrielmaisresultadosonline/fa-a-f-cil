@@ -8,7 +8,7 @@
 - [ ] Integrar auxiliar no computador do usuário com sessão local e envio somente do áudio; não publicar o cookies.txt enviado
 - [ ] Conferir formato do arquivo enviado sem expor dados; orientar renovação da sessão compartilhada no chat
 - [x] Ativar Node/EJS, atualizar yt-dlp nos três instaladores e no atualizador, proteger cookies e testar download/conversão: 27 testes passaram; aviso de runtime ausente no teste real do link informado
-- [ ] Confirmar download real na VPS — link informado continua exigindo confirmação do YouTube mesmo com Node/EJS; depende da atualização e de cookies privados válidos ou uso de arquivo autorizado
+- [ ] Confirmar download real na VPS com cookies ativos + provedor de tokens PO (rodar update-vps.sh e test-youtube.sh e ler o resultado)
 ## Compatibilidade com acesso pelo IP
 - [x] Substituir randomUUID direto no navegador por UUID seguro compatível com HTTP; 30 testes passaram e Chromium confirmou 1.000 UUIDs únicos e validação de cena sem randomUUID em origem HTTP não segura; criação autenticada na VPS aguarda atualização pelo usuário
 ## Instalação VPS em comando único

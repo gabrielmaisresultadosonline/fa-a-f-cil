@@ -53,3 +53,10 @@ test('updater never prints privileged keys and keeps them in server processes on
   assert.doesNotMatch(script, /echo .*\$SUPABASE_/);
   assert.match(script, /runuser -u \$APP_USER -- "\$\{BUILD_ENV\[@\]\}" node \$APP_DIR\/deploy\/local\.mjs build/);
 });
+
+test('YouTube updater installs the PO token provider on loopback only', () => {
+  const youtube = readFileSync(new URL('./update-youtube.sh', import.meta.url), 'utf8');
+  assert.match(youtube, /bgutil-ytdlp-pot-provider/);
+  assert.match(youtube, /-p 127\.0\.0\.1:4416:4416/);
+  assert.doesNotMatch(youtube, /-p 4416:4416/);
+});
