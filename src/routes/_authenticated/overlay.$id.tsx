@@ -1,3 +1,4 @@
+import { getStudioSettings } from "@/lib/settings";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Circle, Loader2, RefreshCw, Wand2, SlidersHorizontal } from "lucide-react";
@@ -96,7 +97,7 @@ function OverlayEditor() {
     if (!p) return;
     setSrv(true);
     try {
-      await enfileirar({ modulo: "overlay", alvoId: p.id, nome: p.nome, engine: "ffmpeg" });
+      await enfileirar({ modulo: "overlay", alvoId: p.id, nome: p.nome, engine: getStudioSettings().motor ?? "ffmpeg" });
       toast.success("Envio confirmado. Pode fechar o navegador; o servidor continua renderizando.");
     } catch (e) { toast.error(e instanceof Error ? e.message : "Erro ao enviar"); }
     finally { setSrv(false); }

@@ -1,0 +1,2 @@
+ALTER TABLE public.app_settings ADD COLUMN IF NOT EXISTS render_engine text NOT NULL DEFAULT 'ffmpeg' CHECK (render_engine IN ('ffmpeg','hyperframes'));
+NOTIFY pgrst, 'reload schema';

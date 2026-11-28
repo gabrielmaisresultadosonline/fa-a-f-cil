@@ -14,7 +14,7 @@ export function AccountProvider({ children }: { children:ReactNode }) {
     try {
       const { data:user }=await supabase.auth.getUser();
       const { data:settings }=await supabase.from("app_settings").select("*").eq("id",true).single();
-      if (settings) { setSales(settings.sales_enabled); setPublicSettings({ servidor:settings.render_url || "http://localhost:4400",modelo:settings.model,precos:settings.prices as unknown as Precos }); }
+      if (settings) { setSales(settings.sales_enabled); setPublicSettings({ servidor:settings.render_url || "http://localhost:4400",modelo:settings.model,precos:settings.prices as unknown as Precos,motor:settings.render_engine==="hyperframes"?"hyperframes":"ffmpeg" }); }
       setInfo(user.user ? await accountInfo() : null);
     } catch { setInfo(null); } finally { setLoading(false); }
   },[]);

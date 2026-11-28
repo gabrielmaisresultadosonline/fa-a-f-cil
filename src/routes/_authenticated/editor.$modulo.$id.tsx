@@ -1,3 +1,4 @@
+import { getStudioSettings } from "@/lib/settings";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, AudioLines, ChevronDown, Film, Loader2, Mic2, MousePointer2, Music2, Pause, Play, Scissors, Split, Square, Trash2, Youtube } from "lucide-react";
@@ -246,7 +247,7 @@ function VideoEditor() {
     pause(); setSending(true);
     try {
       await saveEditor(editor);
-      await enfileirar({ modulo, alvoId: id, nome: editor.nome, engine: "ffmpeg", editorId: editor.id });
+      await enfileirar({ modulo, alvoId: id, nome: editor.nome, engine: getStudioSettings().motor ?? "ffmpeg", editorId: editor.id });
       toast.success("Envio confirmado. O servidor renderiza todas as camadas mesmo com o navegador fechado.");
     } catch (e) { toast.error(e instanceof Error ? e.message : "Erro ao enviar a renderização"); }
     finally { setSending(false); }

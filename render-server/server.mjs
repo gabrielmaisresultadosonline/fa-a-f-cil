@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 // MotionMRO — servidor de renderização e áudio (localhost ou VPS)
 // Requisitos: Node 22+, FFmpeg. yt-dlp e audio-separator habilitam música e remoção de voz.
 import http from "node:http";
-import { writeFile, mkdir, readFile, rm, stat } from "node:fs/promises";
+import { writeFile, mkdir, readFile, rm, stat, rename } from "node:fs/promises";
 import { createReadStream } from "node:fs";
 import { join, resolve } from "node:path";
 import { spawn } from "node:child_process";
@@ -166,6 +166,16 @@ tl.set({}, {}, ${m.duracao});window.__timelines=window.__timelines||{};window.__
   return out;
 }
 
+// Reescreve a entrada em taxa de quadros fixa com áudio e vídeo alinhados a partir do zero.
+// Vídeos de celular (taxa variável ou trilhas com início diferente) atrasavam o áudio no MP4.
+async function normalizeInput(video, m, dir) {
+  const tmp = join(dir, "input-sync.mp4");
+  const args = ["-y", "-i", video, "-map", "0:v:0", "-vf", `fps=${m.fps}:start_time=0,setpts=N/(${m.fps}*TB)`, "-c:v", "libx264", "-preset", "veryfast", "-crf", "14", "-pix_fmt", "yuv420p"];
+  if (await temAudio(video)) args.push("-map", "0:a:0", "-af", "aresample=48000:async=1:first_pts=0", "-c:a", "aac", "-b:a", "256k");
+  await run("ffmpeg", [...args, "-avoid_negative_ts", "make_zero", tmp], dir);
+  await rm(video, { force: true }); await rename(tmp, video);
+}
+
 function cors(req,res) {
   const origins=(process.env.CORS_ORIGINS||process.env.APP_ORIGIN||"http://localhost:8080").split(",");
   if(origins.includes(req.headers.origin))res.setHeader("Access-Control-Allow-Origin",req.headers.origin);
@@ -181,6 +191,8 @@ const queue = new RenderQueue(DATA_DIR, async (m, dir, progress) => {
   let browser;
   try {
     if (!(await exists(video))) await run("ffmpeg", ["-y", "-f", "lavfi", "-i", `color=c=black:s=${m.largura}x${m.altura}:d=${m.duracao}:r=${m.fps}`, "-c:v", "libx264", "-pix_fmt", "yuv420p", video], dir);
+    progress(3, "Sincronizando áudio e vídeo");
+    await normalizeInput(video, m, dir);
     let sfx = await exists(join(dir, "sfx.wav")) ? join(dir, "sfx.wav") : null;
     browser = await puppeteer.launch({ headless: true, args: ["--no-sandbox", "--disable-setuid-sandbox"] });
     const frames = [];

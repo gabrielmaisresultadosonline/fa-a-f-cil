@@ -20,6 +20,7 @@ export type Database = {
           infinite_handle: string
           model: string
           prices: Json
+          render_engine: string
           render_url: string
           sales_enabled: boolean
         }
@@ -28,6 +29,7 @@ export type Database = {
           infinite_handle?: string
           model?: string
           prices?: Json
+          render_engine?: string
           render_url?: string
           sales_enabled?: boolean
         }
@@ -36,6 +38,7 @@ export type Database = {
           infinite_handle?: string
           model?: string
           prices?: Json
+          render_engine?: string
           render_url?: string
           sales_enabled?: boolean
         }

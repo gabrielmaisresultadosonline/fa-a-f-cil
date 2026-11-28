@@ -78,7 +78,7 @@ export const checkCheckout = createServerFn({ method:"POST" }).middleware([requi
   const { verifiedPayment } = await import("./saas.server");
   return { paid:await verifiedPayment(data.id,data.transaction,data.slug) };
 });
-const adminInput = z.object({ action:z.enum(["read","settings","code","toggle_code"]),page:z.number().int().min(0).max(100000).default(0),code:z.string().max(64).optional(),codeId:z.uuid().optional(),enabled:z.boolean().optional(),token:z.string().max(500).optional(),sales:z.boolean().optional(),renderUrl:z.string().max(300).optional(),handle:z.string().min(1).max(80).optional(),model:z.string().min(1).max(80).optional(),prices:z.record(z.string(),z.unknown()).optional() });
+const adminInput = z.object({ action:z.enum(["read","settings","code","toggle_code"]),page:z.number().int().min(0).max(100000).default(0),code:z.string().max(64).optional(),codeId:z.uuid().optional(),enabled:z.boolean().optional(),token:z.string().max(500).optional(),sales:z.boolean().optional(),renderUrl:z.string().max(300).optional(),engine:z.enum(["ffmpeg","hyperframes"]).optional(),handle:z.string().min(1).max(80).optional(),model:z.string().min(1).max(80).optional(),prices:z.record(z.string(),z.unknown()).optional() });
 export const adminAction = createServerFn({ method:"POST" }).middleware([requireSupabaseAuth]).inputValidator(adminInput).handler(async ({ data,context }) => {
   const { data:admin } = await context.supabase.rpc("has_role",{_user_id:context.userId,_role:"admin"});
   if (!admin) throw new Error("Acesso exclusivo da administração.");
@@ -94,7 +94,7 @@ export const adminAction = createServerFn({ method:"POST" }).middleware([require
   }
   if (data.action === "settings") {
     if (data.renderUrl && !/^https?:\/\//.test(data.renderUrl)) throw new Error("Endereço do servidor inválido.");
-    const { error } = await supabaseAdmin.from("app_settings").update({ ...(data.sales !== undefined ? {sales_enabled:data.sales}:{}),...(data.renderUrl !== undefined ? {render_url:data.renderUrl}:{}),...(data.handle ? {infinite_handle:data.handle}:{}),...(data.model ? {model:data.model}:{}),...(data.prices ? {prices:data.prices as Json}:{}) }).eq("id",true);
+    const { error } = await supabaseAdmin.from("app_settings").update({ ...(data.sales !== undefined ? {sales_enabled:data.sales}:{}),...(data.renderUrl !== undefined ? {render_url:data.renderUrl}:{}),...(data.engine ? {render_engine:data.engine}:{}),...(data.handle ? {infinite_handle:data.handle}:{}),...(data.model ? {model:data.model}:{}),...(data.prices ? {prices:data.prices as Json}:{}) }).eq("id",true);
     if (error) throw error;
     if (data.token?.trim()) { const { encryptToken } = await import("./saas.server"); const { error:failure } = await supabaseAdmin.from("private_settings").update({openai_encrypted:await encryptToken(data.token.trim())}).eq("id",true); if (failure) throw failure; }
   }

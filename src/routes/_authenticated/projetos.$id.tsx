@@ -1,3 +1,4 @@
+import { getStudioSettings } from "@/lib/settings";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Play, Pause, Download, Film, ListPlus, RefreshCw, Loader2, Check, X, Circle, Wand2, SlidersHorizontal } from "lucide-react";
@@ -80,7 +81,7 @@ function Editor() {
   async function renderizar() {
     if (!p) return;
     setEnviando(true);
-    try { await enfileirar({ modulo: "motion", alvoId: p.id, nome: p.config.nome, engine: "ffmpeg" }); toast.success("Envio confirmado. Pode fechar o navegador; o servidor continua renderizando."); }
+    try { await enfileirar({ modulo: "motion", alvoId: p.id, nome: p.config.nome, engine: getStudioSettings().motor ?? "ffmpeg" }); toast.success("Envio confirmado. Pode fechar o navegador; o servidor continua renderizando."); }
     catch (e) { toast.error(e instanceof Error ? e.message : "Erro ao enviar"); }
     finally { setEnviando(false); }
   }

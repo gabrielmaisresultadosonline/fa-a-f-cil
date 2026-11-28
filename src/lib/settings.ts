@@ -8,7 +8,7 @@ export interface Precos {
 export interface Creds {
   token?: string; modelo?: string; servidor?: string;
   elevenToken?: string; voz?: string; vozNome?: string; vozModelo?: string;
-  precos?: Precos;
+  precos?: Precos; motor?: "ffmpeg" | "hyperframes";
 }
 export function getCreds(): Creds {
   if (typeof window === "undefined") return {};
