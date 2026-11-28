@@ -126,12 +126,12 @@ function Custos() {
           <section className="rounded-xl border border-border bg-card/70 p-5">
             <h3 className="font-semibold">Tabela de preços (US$)</h3>
             <p className="mt-1 text-xs text-muted-foreground">Ajuste conforme a tabela atual da OpenAI e do seu plano ElevenLabs. Valores usados nos próximos cálculos.</p>
-            <div className="mt-3 grid grid-cols-[1fr_90px_90px] gap-2 text-xs">
-              <span className="font-mono uppercase text-muted-foreground">Modelo</span><span className="font-mono uppercase text-muted-foreground">Entrada/1M</span><span className="font-mono uppercase text-muted-foreground">Saída/1M</span>
+            <div className="mt-3 grid grid-cols-[1fr_80px_80px_80px] gap-2 text-xs">
+              <span className="font-mono uppercase text-muted-foreground">Modelo</span><span className="font-mono uppercase text-muted-foreground">Entrada/1M</span><span className="font-mono uppercase text-muted-foreground">Saída/1M</span><span className="font-mono uppercase text-muted-foreground">Cache/1M</span>
               {MODELOS.map((m) => (
                 <div key={m.id} className="contents">
                   <span className="self-center">{m.id}</span>
-                  {(["entrada", "saida"] as const).map((k) => (
+                  {(["entrada", "saida", "cache"] as const).map((k) => (
                     <input key={k} type="number" step="0.01" className={field} value={precos.modelos[m.id]?.[k] ?? 0}
                       onChange={(e) => setPrecos({ ...precos, modelos: { ...precos.modelos, [m.id]: { ...(precos.modelos[m.id] ?? { entrada: 0, saida: 0 }), [k]: Number(e.target.value) } } })} />
                   ))}

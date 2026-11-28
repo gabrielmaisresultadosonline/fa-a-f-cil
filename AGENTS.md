@@ -56,3 +56,4 @@ use the editor.
 - Overlay uploads report real byte progress and AI starts only after storage and project confirmation.
 - Persist optional Overlay observations separately from generated style and forward them to planning, animation and repair, so creative preferences survive regeneration.
 - Regeneration percentages reflect milestones, not elapsed time; report 100 only after saving and finalization.
+- Store cached input tokens in usage_costs and price them at the model's cache rate; default prices follow OpenAI's official table so admin costs match the provider bill.

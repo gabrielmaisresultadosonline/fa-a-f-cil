@@ -325,6 +325,7 @@ export type Database = {
       }
       usage_costs: {
         Row: {
+          cached_input_tokens: number
           created_at: string
           generation_id: string | null
           id: string
@@ -338,6 +339,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          cached_input_tokens?: number
           created_at?: string
           generation_id?: string | null
           id?: string
@@ -351,6 +353,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          cached_input_tokens?: number
           created_at?: string
           generation_id?: string | null
           id?: string
@@ -441,6 +444,13 @@ export type Database = {
       reserve_generation: {
         Args: { p_project: string; p_seconds: number; p_user: string }
         Returns: string
+      }
+      usage_cost_usd: {
+        Args: {
+          c: Database["public"]["Tables"]["usage_costs"]["Row"]
+          s: Database["public"]["Tables"]["app_settings"]["Row"]
+        }
+        Returns: number
       }
     }
     Enums: {

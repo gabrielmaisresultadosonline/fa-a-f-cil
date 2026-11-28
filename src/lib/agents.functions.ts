@@ -52,10 +52,10 @@ export const runAgent = createServerFn({ method: "POST" })
         if (r.status === 429) throw new Error("A OpenAI recusou por limite ou falta de saldo na sua conta.");
         throw new Error(`OpenAI ${r.status}: ${t.slice(0, 200)}`);
       }
-      const j = (await r.json()) as { choices?: { message?: { content?: string } }[]; usage?: { prompt_tokens?: number; completion_tokens?: number } };
+      const j = (await r.json()) as { choices?: { message?: { content?: string } }[]; usage?: { prompt_tokens?: number; completion_tokens?: number; prompt_tokens_details?: { cached_tokens?: number } } };
       text = j.choices?.[0]?.message?.content ?? "";
       entrada = j.usage?.prompt_tokens ?? 0; saida = j.usage?.completion_tokens ?? 0;
-      const { error:costError } = await supabaseAdmin.from("usage_costs").insert({user_id:context.userId,project_id:data.projectId,generation_id:generationId,kind:"ia",stage:data.stage,model:settings.model,input_tokens:entrada,output_tokens:saida,units:entrada+saida});
+      const { error:costError } = await supabaseAdmin.from("usage_costs").insert({user_id:context.userId,project_id:data.projectId,generation_id:generationId,kind:"ia",stage:data.stage,model:settings.model,input_tokens:entrada,output_tokens:saida,cached_input_tokens:j.usage?.prompt_tokens_details?.cached_tokens ?? 0,units:entrada+saida});
       if (costError) throw new Error("Consumo recebido, mas o registro de custos falhou. Avise a administração.");
     } else {
       throw new Error("Cadastre seu token da OpenAI em Administração.");

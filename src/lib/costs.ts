@@ -6,14 +6,15 @@ import { supabase } from "@/integrations/supabase/client";
 export type TipoCusto = "ia" | "transcricao" | "voz" | "render";
 export interface Custo {
   id: string; t: number; projetoId: string; projetoNome: string; modulo: "motion" | "overlay";
-  tipo: TipoCusto; etapa: string; modelo: string; entrada: number; saida: number; unidades: number; usd: number;
+  tipo: TipoCusto; etapa: string; modelo: string; entrada: number; saida: number; cache?: number; unidades: number; usd: number;
 }
 export interface CustoMeta { projetoId: string; projetoNome: string; modulo: "motion" | "overlay"; etapa: string }
 const P = "custo:";
 
-export function precoIA(modelo: string, entrada: number, saida: number) {
-  const m = getPrecos().modelos[modelo] ?? { entrada: 0, saida: 0 };
-  return (entrada * m.entrada + saida * m.saida) / 1_000_000;
+export function precoIA(modelo: string, entrada: number, saida: number, cache = 0, precos = getPrecos()) {
+  const m = precos.modelos[modelo] ?? { entrada: 0, saida: 0 };
+  const c = Math.min(Math.max(cache, 0), entrada);
+  return ((entrada - c) * m.entrada + c * (m.cache ?? m.entrada * 0.05) + saida * m.saida) / 1_000_000;
 }
 export async function logCusto(meta: CustoMeta, c: Omit<Custo, "id" | "t" | keyof CustoMeta>) {
   const x: Custo = { id: createId(), t: Date.now(), ...meta, ...c };
@@ -26,8 +27,8 @@ export async function listCustos() {
   // recalcula com a tabela de preços atual
   const ids=[...new Set((rows??[]).map((r)=>r.project_id))];
   const projects=ids.length?await supabase.from("customer_projects").select("id,name,kind").in("id",ids).limit(500):{data:[]};
-  return (rows??[]).map((r):Custo=>({id:r.id,t:Date.parse(r.created_at),projetoId:r.project_id,projetoNome:`${r.profiles?.name||"Cliente"} — ${projects.data?.find((p)=>p.id===r.project_id)?.name||r.project_id}`,modulo:projects.data?.find((p)=>p.id===r.project_id)?.kind==="overlay"?"overlay":"motion",tipo:r.kind as TipoCusto,etapa:r.stage,modelo:r.model,entrada:r.input_tokens,saida:r.output_tokens,unidades:Number(r.units),usd:0})).map((c) => ({ ...c,
-    usd: c.tipo === "ia" ? precoIA(c.modelo, c.entrada, c.saida) : c.tipo === "voz" ? (c.unidades / 1000) * pr.vozMilChars : c.tipo === "transcricao" ? c.unidades * pr.transcricaoMin : c.usd,
+  return (rows??[]).map((r):Custo=>({id:r.id,t:Date.parse(r.created_at),projetoId:r.project_id,projetoNome:`${r.profiles?.name||"Cliente"} — ${projects.data?.find((p)=>p.id===r.project_id)?.name||r.project_id}`,modulo:projects.data?.find((p)=>p.id===r.project_id)?.kind==="overlay"?"overlay":"motion",tipo:r.kind as TipoCusto,etapa:r.stage,modelo:r.model,entrada:r.input_tokens,saida:r.output_tokens,cache:r.cached_input_tokens??0,unidades:Number(r.units),usd:0})).map((c) => ({ ...c,
+    usd: c.tipo === "ia" ? precoIA(c.modelo, c.entrada, c.saida, c.cache) : c.tipo === "voz" ? (c.unidades / 1000) * pr.vozMilChars : c.tipo === "transcricao" ? c.unidades * pr.transcricaoMin : c.usd,
   })).sort((a, b) => b.t - a.t);
 }
 export async function limparCustos() {

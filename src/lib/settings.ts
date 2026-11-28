@@ -1,6 +1,6 @@
 const K = "motionmro:openai";
 export interface Precos {
-  modelos: Record<string, { entrada: number; saida: number }>; // US$ por 1 milhão de tokens
+  modelos: Record<string, { entrada: number; saida: number; cache?: number }>; // US$ por 1 milhão de tokens (cache = entrada reaproveitada)
   transcricaoMin: number; // US$ por minuto de áudio
   vozMilChars: number; // US$ por 1.000 caracteres (ElevenLabs)
   dolar: number; // R$ por US$
@@ -26,7 +26,7 @@ export const MODELOS: { id: string; nome: string }[] = [
 export const SERVIDOR_PADRAO = "http://localhost:4400";
 export const PRECOS_PADRAO: Precos = {
   modelos: {
-    "gpt-6.1-terra": { entrada: 5, saida: 20 },
+    "gpt-6.1-terra": { entrada: 1, saida: 5, cache: 0.05 }, // preço oficial OpenAI
   },
   transcricaoMin: 0.006, vozMilChars: 0.3, dolar: 5.5,
 };
