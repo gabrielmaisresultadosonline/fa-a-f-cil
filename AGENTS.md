@@ -36,7 +36,7 @@ use the editor.
 - Layer editor timing and uploaded audio persist as owner-scoped Cloud records and private blobs; yt-dlp/UVR media stays owner-scoped on the render server, which creates one filtered WAV mix for both engines so preview and export use identical edits.
 
 - Render queue ownership belongs to the user-hosted Node server: persist inputs and metadata, acknowledge before rendering, recover on startup and bound workers; Cloud stores customer job references, all render/media requests verify Auth and owner, and completed MP4s expire on server timers even with browsers closed.
-- Paid OpenAI calls and transcription record raw units server-side per customer, project and generation; admin-only SQL aggregates recalculate USD with the editable price table to avoid trusting browser costs.
+- Paid OpenAI calls and transcription record raw units (incl. cached input) server-side; admin SQL recalculates USD with the editable official-price table, so costs match the provider bill.
 - Credit and trial budgets are reserved atomically by service-only database functions; AI endpoints verify an active reservation, bound calls and never accept client-set balances, to prevent concurrent overspending.
 - InfinitePay webhooks are notification-only: verify the real order and amount through payment_check before atomic idempotent credit release, because the supplied provider documentation has no webhook signature.
 - Persist bounded payment checks on the Node render server with per-order capabilities, never customer session tokens; public verification returns status only and requires the capability, so closing the checkout cannot stop accepted checks.
@@ -56,4 +56,3 @@ use the editor.
 - Overlay uploads report real byte progress and AI starts only after storage and project confirmation.
 - Persist optional Overlay observations separately from generated style and forward them to planning, animation and repair, so creative preferences survive regeneration.
 - Regeneration percentages reflect milestones, not elapsed time; report 100 only after saving and finalization.
-- Store cached input tokens in usage_costs and price them at the model's cache rate; default prices follow OpenAI's official table so admin costs match the provider bill.
