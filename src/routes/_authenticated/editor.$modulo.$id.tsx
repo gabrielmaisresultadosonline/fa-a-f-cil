@@ -1,7 +1,7 @@
 import { getStudioSettings } from "@/lib/settings";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, AudioLines, ChevronDown, Film, Loader2, Mic2, MousePointer2, Music2, Pause, Play, Scissors, Split, Square, Trash2, Youtube } from "lucide-react";
+import { ArrowLeft, AudioLines, ChevronDown, Film, Loader2, Mic2, MousePointer2, Pause, Play, Scissors, Split, Square, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/motion/AppShell";
 import { RenderStatus } from "@/components/motion/RenderStatus";
@@ -12,7 +12,7 @@ import { peaksFromBuffer } from "@/lib/waveform";
 import { Button } from "@/components/ui/button";
 import { addClip, deleteClip, findClip, getOrCreateEditor, saveEditor, setClipWindow, splitClip, updateClip, updateTrack, vocalsRemovedFor, type EditorModule, type EditorProject } from "@/lib/editor";
 import { EditorAudioEngine } from "@/lib/editorAudio";
-import { audioDuration, downloadYoutubeAudio, separateVocals } from "@/lib/media";
+import { audioDuration, separateVocals } from "@/lib/media";
 import { getProject, type Project } from "@/lib/projects";
 import { getOverlay, type OverlayProject } from "@/lib/overlays";
 import { enfileirar } from "@/lib/queue";
@@ -56,8 +56,6 @@ function VideoEditor() {
   const [px, setPx] = useState(18);
   const [busy, setBusy] = useState("");
   const [progress, setProgress] = useState<number | null>(null);
-  const [youtube, setYoutube] = useState("");
-  const [youtubeOpen, setYoutubeOpen] = useState(false);
   const [peaks, setPeaks] = useState<Record<string, Float32Array>>({});
   const peaksLoading = useRef(new Set<string>());
   const keysRef = useRef<{ toggle: () => void; remove: () => void }>({ toggle: () => {}, remove: () => {} });
@@ -209,19 +207,6 @@ function VideoEditor() {
     } catch { toast.error("Permita o acesso ao microfone para gravar"); }
   }
 
-  async function addYoutube() {
-    if (!editor || !youtube.trim()) return;
-    pause(); setBusy("youtube"); setProgress(null);
-    try {
-      const media = await downloadYoutubeAudio(youtube.trim(), setProgress);
-      const current = editorRef.current;
-      if (!current) return;
-      const next = addClip(current, { nome: media.nome, sourceDuration: media.duracao, inicio: timeRef.current, mediaId: media.id, servidor: servidorUrl(), stem: "original", tipo: "musica", novaFaixa: true });
-      setEditor(next); setSelectedClip(next.tracks.at(-1)?.clips[0]?.id); setYoutube("");
-      toast.success("Música baixada e adicionada. Use Remover voz se quiser só o instrumental.");
-    } catch (e) { toast.error(e instanceof Error ? e.message : "Não foi possível baixar a música"); }
-    finally { setBusy(""); }
-  }
 
   async function changeStem(stem: "original" | "instrumental") {
     if (!editor) return;
@@ -296,14 +281,6 @@ function VideoEditor() {
             <button onClick={toggleRecording} className={`flex items-center justify-center gap-2 rounded-md border px-3 py-3 text-sm ${recording ? "border-destructive text-destructive" : "border-border hover:border-primary"}`}>
               {recording ? <Square className="h-4 w-4 fill-current" /> : <Mic2 className="h-4 w-4 text-primary" />}{recording ? `Parar gravação · ${recordSeconds.toFixed(1)}s` : "Gravar áudio agora"}
             </button>
-            <button onClick={() => setYoutubeOpen((o) => !o)} aria-expanded={youtubeOpen} className={`flex items-center justify-center gap-2 rounded-md border px-3 py-3 text-sm md:col-span-2 ${youtubeOpen ? "border-primary" : "border-border hover:border-primary"}`}>
-              <Youtube className="h-4 w-4 text-[#ff0033]" />{busy === "youtube" ? `Baixando do YouTube ${progress ?? 0}%` : "Música do YouTube"}<ChevronDown className={`h-4 w-4 transition-transform ${youtubeOpen ? "rotate-180" : ""}`} />
-            </button>
-            {(youtubeOpen || busy === "youtube") && <div className="md:col-span-2">
-              <div className="flex flex-col gap-2 sm:flex-row"><div className="relative min-w-0 flex-1"><Youtube className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" /><input value={youtube} onChange={(e) => setYoutube(e.target.value)} placeholder="Cole o link da música no YouTube" className={`${field} pl-9`} /></div><Button variant="outline" onClick={addYoutube} disabled={!youtube.trim() || busy === "youtube"}>{busy === "youtube" ? <Loader2 className="animate-spin" /> : <Music2 />}{busy === "youtube" ? (progress === null ? "Iniciando..." : progress >= 92 ? `Convertendo ${progress}%` : `Baixando ${progress}%`) : "Baixar e adicionar"}</Button></div>
-              {busy === "youtube" && <div className="space-y-1"><div className="h-1.5 overflow-hidden rounded-full bg-muted"><div className="h-full bg-primary transition-all" style={{ width: `${progress ?? 0}%` }} /></div><p className="text-xs text-muted-foreground">{progress === null ? "Preparando o download..." : `${progress}% concluído`}</p></div>}
-              <p className="mt-2 text-xs text-muted-foreground">Baixe somente conteúdo próprio ou autorizado.</p>
-            </div>}
           </section>
 
           <div className="flex flex-wrap items-center gap-2">
