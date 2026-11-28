@@ -1,13 +1,13 @@
 import type { OverlayProject } from "./overlays";
 import type { Project } from "./projects";
 import { renderSfxWav } from "./sfx";
-import { getStudioSettings, SERVIDOR_PADRAO } from "./settings";
+import { getStudioSettings, resolveRenderBase } from "./settings";
 import { renderFetch, renderHeaders } from "./renderAuth";
 import { prepareSceneHtml } from "./sceneLayout";
 import { clipMix, type EditorProject } from "./editor";
 
 export type Engine = "ffmpeg" | "hyperframes";
-export function servidorUrl() { return (getStudioSettings().servidor || SERVIDOR_PADRAO).replace(/\/+$/, ""); }
+export function servidorUrl() { return resolveRenderBase(getStudioSettings().servidor); }
 
 export interface ServerJob {
   expirado?:boolean;

@@ -3,7 +3,7 @@ import { saveCloud, listCloud } from "./cloudRepository";
 import { getOverlay } from "./overlays";
 import { getProject } from "./projects";
 import { renderSfxWav } from "./sfx";
-import { getStudioSettings, SERVIDOR_PADRAO } from "./settings";
+import { getStudioSettings, resolveRenderBase } from "./settings";
 
 export type EditorModule = "motion" | "overlay";
 export type TrackKind = "video" | "efeitos" | "musica" | "gravacao" | "audio";
@@ -60,7 +60,7 @@ function track(tipo: TrackKind, nome: string, clips: EditorClip[] = []): EditorT
 
 export function clipUrl(clip: EditorClip) {
   if (!clip.mediaId) return "";
-  return `${(clip.servidor || getStudioSettings().servidor || SERVIDOR_PADRAO).replace(/\/+$/, "")}/media/${clip.mediaId}/audio?stem=${clip.stem === "instrumental" ? "instrumental" : "original"}`;
+  return `${resolveRenderBase(getStudioSettings().servidor || clip.servidor)}/media/${clip.mediaId}/audio?stem=${clip.stem === "instrumental" ? "instrumental" : "original"}`;
 }
 
 export async function getEditor(modulo: EditorModule, alvoId: string) {

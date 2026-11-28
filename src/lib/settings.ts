@@ -34,3 +34,11 @@ export function getPrecos(): Precos {
   const p = publicSettings.precos ?? getCreds().precos;
   return { ...PRECOS_PADRAO, ...p, modelos: { ...PRECOS_PADRAO.modelos, ...p?.modelos } };
 }
+/** Endereço do servidor de renderização visto pelo navegador: em página HTTPS, um endereço HTTP antigo (IP:4400) seria bloqueado, então usa o proxy /render do próprio domínio. */
+export function resolveRenderBase(url?: string) {
+  const base = (url || SERVIDOR_PADRAO).replace(/\/+$/, "");
+  if (typeof window === "undefined") return base;
+  const { protocol, origin, hostname } = window.location;
+  if (protocol === "https:" && base.startsWith("http:") && hostname !== "localhost") return `${origin}/render`;
+  return base;
+}

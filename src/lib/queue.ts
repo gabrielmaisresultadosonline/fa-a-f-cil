@@ -1,3 +1,4 @@
+import { resolveRenderBase } from "./settings";
 import { createId } from "./uuid";
 import { saveCloud, getCloud, deleteCloud, listCloud } from "./cloudRepository";
 import { getOverlay } from "./overlays";
@@ -21,7 +22,7 @@ const emit = () => listeners.forEach((f) => f());
 export async function saveJob(j: Job) { await saveCloud("job",j.id,j.nome,j); emit(); }
 export async function removeJob(id: string) {
   const job = await getCloud<Job>("job",id);
-  if (job?.remoto && job.servidor) await serverRequest(`${job.servidor}/jobs/${id}`, { method: "DELETE" });
+  if (job?.remoto && job.servidor) await serverRequest(`${resolveRenderBase(job.servidor)}/jobs/${id}`, { method: "DELETE" });
   await deleteCloud("job",id); emit();
 }
 export async function listJobs() {
@@ -73,11 +74,11 @@ function mergeRemote(job: Job, remote: ServerJob): Job {
   return { ...job, ...remote, remoto: true, envio: 100, conexao: undefined, erro: remote.erro };
 }
 export function downloadJobUrl(job: Job) {
-  return job.remoto && job.servidor && job.status === "concluido" ? `${job.servidor}/jobs/${job.id}/download` : undefined;
+  return job.remoto && job.servidor && job.status === "concluido" ? `${resolveRenderBase(job.servidor)}/jobs/${job.id}/download` : undefined;
 }
 export async function retryJob(job: Job) {
   if (job.remoto && job.servidor) {
-    const remote = await serverRequest(`${job.servidor}/jobs/${job.id}/retry`, { method: "POST" });
+    const remote = await serverRequest(`${resolveRenderBase(job.servidor)}/jobs/${job.id}/retry`, { method: "POST" });
     await saveJob(mergeRemote(job, remote));
   } else {
     // Idempotent: if the original POST was accepted but the reply was lost, reuses it.
@@ -95,7 +96,7 @@ export async function processarFila() {
     await Promise.all(jobs.filter((j) => !uploads.has(j.id) && j.servidor && !j.resultado && (j.status === "enviando" || j.status === "na fila" || j.status === "renderizando" || j.conexao)).map(async (j) => {
       if (!j.servidor) return;
       try {
-        const remote = await serverRequest(`${j.servidor}/jobs/${j.id}`);
+        const remote = await serverRequest(`${resolveRenderBase(j.servidor)}/jobs/${j.id}`);
         await saveJob(mergeRemote(j, remote));
       } catch (e) {
         // An upload isn't durable until POST confirmation; don't overwrite its progress.
@@ -132,7 +133,7 @@ async function recuperarEnvios() {
     if (job.status !== "enviando") continue;
     try {
       if (!job.servidor) throw new Error("Servidor não definido");
-      await saveJob(mergeRemote(job, await serverRequest(`${job.servidor}/jobs/${job.id}`)));
+      await saveJob(mergeRemote(job, await serverRequest(`${resolveRenderBase(job.servidor)}/jobs/${job.id}`)));
     } catch {
       await saveJob({ ...job, status: "erro", erro: "O envio foi interrompido. Tente novamente para confirmar ou reenviar ao servidor.", etapa: "Envio não confirmado" });
     }
