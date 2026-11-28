@@ -1,7 +1,7 @@
 import { getStudioSettings } from "@/lib/settings";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Play, Pause, Download, Film, ListPlus, RefreshCw, Loader2, Check, X, Circle, Wand2, SlidersHorizontal } from "lucide-react";
+import { Play, Pause, Film, ListPlus, RefreshCw, Loader2, Check, X, Circle, Wand2, SlidersHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AppShell } from "@/components/motion/AppShell";
@@ -10,7 +10,7 @@ import { ProjectRequest } from "@/components/motion/ProjectRequest";
 import { Button } from "@/components/ui/button";
 import { ScenePlayer } from "@/components/motion/ScenePlayer";
 import { SfxToggle } from "@/components/motion/SfxToggle";
-import { AGENTES, buildFullHtml, getProject, saveProject, type Project, type AgentStatus } from "@/lib/projects";
+import { AGENTES, getProject, saveProject, type Project, type AgentStatus } from "@/lib/projects";
 import { generateScene, runPipeline } from "@/lib/pipeline";
 import { enfileirar } from "@/lib/queue";
 
@@ -72,11 +72,6 @@ function Editor() {
     catch (e) { toast.error(e instanceof Error ? e.message : "Erro"); }
     setBusy(false);
   }
-  function exportar() {
-    if (!p) return;
-    const blob = new Blob([buildFullHtml(p)], { type: "text/html" });
-    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `${p.config.nome.replace(/\W+/g, "_")}.html`; a.click();
-  }
   async function rename(nome: string) { if (!p) return; p.config.nome = nome; await saveProject(p); setP({ ...p }); }
   async function renderizar() {
     if (!p) return;
@@ -91,7 +86,6 @@ function Editor() {
       <ProjectRequest project={p} />
       <Link to="/editor/$modulo/$id" params={{ modulo: "motion", id: p.id }} disabled={!ready.length} className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-40"><SlidersHorizontal className="h-4 w-4" />Abrir vídeo editor</Link>
       {(p.status === "erro" || (p.status === "rascunho" && !busy)) && <button onClick={() => start(p)} disabled={busy} className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm hover:border-primary"><RefreshCw className="h-4 w-4" />{p.status === "erro" ? "Continuar produção" : "Iniciar produção"}</button>}
-      <button onClick={exportar} disabled={!ready.length} className="inline-flex items-center gap-2 rounded-md bg-gradient-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-40"><Download className="h-4 w-4" />Exportar HTML</button>
       <Button disabled={!ready.length || busy || enviando} onClick={renderizar}>{enviando ? <Loader2 className="animate-spin" /> : <Film />}{enviando ? "Enviando…" : "Renderizar vídeo"}</Button>
       <Button variant="outline" disabled={!ready.length || busy || enviando} onClick={renderizar}><ListPlus />Adicionar à fila</Button>
     </>}>
